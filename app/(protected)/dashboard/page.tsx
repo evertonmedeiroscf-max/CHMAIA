@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { exigirAcesso } from '@/lib/supabase/acesso'
 import DashboardClient from './DashboardClient'
 import type { Despesa, Pedido } from '@/lib/types/domain'
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
+  const supabase = await exigirAcesso('dashboard')
   const [{ data: pedidos, error: pedidosError }, { data: despesas, error: despesasError }] = await Promise.all([
     supabase.from('pedidos').select('*'),
     supabase.from('despesas').select('*'),

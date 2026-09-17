@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { exigirAcesso } from '@/lib/supabase/acesso'
 import NotasFiscaisClient from './NotasFiscaisClient'
 import type { NotaFiscal, NotaFiscalComPedido, Pedido } from '@/lib/types/domain'
 
 export default async function NotasFiscaisPage() {
-  const supabase = await createClient()
+  const supabase = await exigirAcesso('notas-fiscais')
   const [{ data: notas, error: notasError }, { data: pedidos, error: pedidosError }] = await Promise.all([
     supabase.from('notas_fiscais').select('*'),
     supabase.from('pedidos').select('*').order('numero', { ascending: false }),

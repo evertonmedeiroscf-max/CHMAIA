@@ -135,3 +135,36 @@ export interface NotaFiscalComPedido extends NotaFiscal {
   pedido_cliente: string
   pedido_data_venda: string
 }
+
+export const TIPOS_USUARIO = ['usuario', 'adm'] as const
+export type TipoUsuario = (typeof TIPOS_USUARIO)[number]
+
+// Chaves usadas tanto no array `paginas` do usuário quanto no `href` das
+// rotas em NavBar — mudar aqui exige atualizar as policies em
+// 0009_usuarios_paginas_acesso.sql (usuario_tem_acesso) também.
+export const PAGINAS_SISTEMA = [
+  { key: 'dashboard', label: 'Resumo financeiro' },
+  { key: 'pedidos', label: 'Pedidos' },
+  { key: 'notas-fiscais', label: 'Relatório NF' },
+  { key: 'despesas', label: 'Despesas' },
+  { key: 'estoque', label: 'Estoque' },
+] as const
+export type PaginaSistema = (typeof PAGINAS_SISTEMA)[number]['key']
+
+// Espelho de auth.users criado automaticamente (trigger no banco) a cada
+// novo cadastro, sempre com aprovado=false. Sem uma linha aprovada aqui,
+// o usuário fica preso na tela de espera em (protected)/layout.tsx — e o
+// bloqueio vale também no banco (RLS exige usuario_esta_aprovado()), não
+// só na interface. Só quem tem tipo='adm' aprova cadastros e define quem
+// mais é ADM (RLS exige usuario_e_adm() nas policies de update). `paginas`
+// controla quais abas o usuário vê e quais dados ele lê/grava — ADM
+// ignora essa lista e sempre tem acesso a tudo (ver usuario_tem_acesso()).
+export interface Usuario {
+  id: string
+  email: string
+  aprovado: boolean
+  tipo: TipoUsuario
+  paginas: string[]
+  created_at: string
+  updated_at: string
+}

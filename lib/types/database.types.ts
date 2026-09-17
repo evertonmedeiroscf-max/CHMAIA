@@ -180,6 +180,28 @@ export interface Database {
           },
         ]
       }
+      usuarios: {
+        Row: {
+          id: string
+          email: string
+          aprovado: boolean
+          tipo: string
+          paginas: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          aprovado?: boolean
+          tipo?: string
+          paginas?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['usuarios']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>

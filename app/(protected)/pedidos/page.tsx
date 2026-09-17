@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { exigirAcesso } from '@/lib/supabase/acesso'
 import PedidosClient from './PedidosClient'
 import type { Pedido } from '@/lib/types/domain'
 
 export default async function PedidosPage() {
-  const supabase = await createClient()
+  const supabase = await exigirAcesso('pedidos')
   const { data, error } = await supabase
     .from('pedidos')
     .select('*')

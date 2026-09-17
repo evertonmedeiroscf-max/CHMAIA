@@ -12,8 +12,20 @@ const LINKS = [
   { href: '/estoque', label: 'Estoque' },
 ]
 
-export default function NavBar({ userEmail, hasLowStock }: { userEmail: string; hasLowStock: boolean }) {
+export default function NavBar({
+  userEmail,
+  hasLowStock,
+  isAdm,
+  paginas,
+}: {
+  userEmail: string
+  hasLowStock: boolean
+  isAdm: boolean
+  paginas: string[]
+}) {
   const pathname = usePathname()
+  const liberados = isAdm ? LINKS : LINKS.filter((link) => paginas.includes(link.href.slice(1)))
+  const links = isAdm ? [...liberados, { href: '/usuarios', label: 'Usuários' }] : liberados
 
   return (
     <nav className="sidebar">
@@ -22,7 +34,7 @@ export default function NavBar({ userEmail, hasLowStock }: { userEmail: string; 
         <div className="sidebar-subtitle">Gestão</div>
       </div>
 
-      {LINKS.map((link) => (
+      {links.map((link) => (
         <Link
           key={link.href}
           href={link.href}

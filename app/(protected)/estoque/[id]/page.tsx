@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { exigirAcesso } from '@/lib/supabase/acesso'
 import ConfirmSubmitButton from '@/components/ConfirmSubmitButton'
 import { deleteMovimento } from '../actions'
 import { formatDateBR } from '@/lib/utils/format'
@@ -10,7 +10,7 @@ const HISTORICO_GRID = '110px 100px 110px 1fr 90px'
 
 export default async function HistoricoEstoquePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
+  const supabase = await exigirAcesso('estoque')
   const [{ data: item }, { data: movimentos }] = await Promise.all([
     supabase.from('estoque_itens').select('*').eq('id', id).single(),
     supabase
