@@ -3,8 +3,17 @@
 **Projeto oficial (único a usar):** `chmaia-sistema`
 **URL de produção:** https://chmaia-sistema.vercel.app
 
-Não crie um novo projeto Vercel para publicar atualizações. Sempre faça deploy
-usando `name: "chmaia-sistema"` e `target: "production"`.
+**Fluxo atual: Git, não deploy manual.** O projeto está conectado ao
+repositório `https://github.com/evertonmedeiroscf-max/CHMAIA` (branch
+`main`). Publicar = `git add`, `git commit`, `git push origin main` — o
+Vercel builda e publica sozinho a cada push. Não use mais `deploy_to_vercel`
+para atualizações; a seção abaixo sobre a limitação de redeploy é só
+histórico de por que migramos para Git.
+
+`git push` exige login interativo do GitHub (abre o navegador) — o agente
+não consegue autenticar sozinho num terminal automatizado. Depois do
+primeiro login bem-sucedido feito pelo usuário, as credenciais ficam
+salvas no Git Credential Manager e os próximos `git push` funcionam direto.
 
 ## Limitação conhecida da integração MCP do Vercel
 
@@ -46,3 +55,15 @@ Projeto: `chmaia` (`nybtoaizretmnezgivnf`, região `sa-east-1`).
 Ao trocar o domínio de produção, atualizar em Supabase Dashboard →
 Authentication → URL Configuration: Site URL e Redirect URLs
 (`https://chmaia-sistema.vercel.app/auth/callback`).
+
+## Variáveis de ambiente necessárias no Vercel
+
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `NEXT_PUBLIC_SITE_URL` — já configuradas.
+- `ANTHROPIC_API_KEY` — necessária para o botão "Importar despesa" (lê
+  foto/print/PDF de comprovante via IA com visão e preenche data/descrição/
+  valor). Sem essa chave, o botão aparece normalmente mas mostra um erro
+  claro ao tentar importar, em vez de quebrar a tela. Chave pessoal do
+  usuário, gerada em console.anthropic.com — nunca colar a chave em texto
+  no chat; o usuário mesmo adiciona em Project Settings → Environment
+  Variables no Vercel (e em `.env.local` para testar em localhost).

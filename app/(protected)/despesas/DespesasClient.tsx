@@ -4,8 +4,9 @@ import { cloneElement, useMemo, useState } from 'react'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
 import DespesaForm from './DespesaForm'
+import ImportarDespesa from './ImportarDespesa'
 import { CATEGORIAS_DESPESA, type Despesa, type FormaPagamento } from '@/lib/types/domain'
-import { formatCurrency, formatDateBR, formatMonthLabel } from '@/lib/utils/format'
+import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
 
@@ -29,7 +30,8 @@ const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '70px'
 
 export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
-  const [filtroMes, setFiltroMes] = useState<string[]>([])
+  const [filtroDataInicio, setFiltroDataInicio] = useState('')
+  const [filtroDataFim, setFiltroDataFim] = useState('')
   const [filtroCategoria, setFiltroCategoria] = useState<string[]>([])
   const [filtroFormaPagamento, setFiltroFormaPagamento] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
@@ -37,13 +39,6 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
 
   const { order, isVisible, toggleVisible, reorder } = useColumnPrefs('colunas:despesas', DEFAULT_ORDER)
 
-  const opcoesMes = useMemo(
-    () =>
-      Array.from(new Set(despesas.map((d) => d.data.slice(0, 7))))
-        .sort()
-        .map((m) => ({ value: m, label: formatMonthLabel(m) })),
-    [despesas]
-  )
   const opcoesFormaPagamento = useMemo(
     () =>
       Array.from(new Set(despesas.map((d) => d.forma_pagamento).filter((v): v is FormaPagamento => !!v)))
@@ -54,14 +49,19 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
 
   const despesasFiltradas = useMemo(() => {
     return despesas
-      .filter((d) => !filtroMes.length || filtroMes.includes(d.data.slice(0, 7)))
+      .filter((d) => !filtroDataInicio || d.data >= filtroDataInicio)
+      .filter((d) => !filtroDataFim || d.data <= filtroDataFim)
       .filter((d) => !filtroCategoria.length || filtroCategoria.includes(d.categoria))
       .filter((d) => !filtroFormaPagamento.length || filtroFormaPagamento.includes(d.forma_pagamento ?? ''))
       .sort((a, b) => b.data.localeCompare(a.data))
-  }, [despesas, filtroMes, filtroCategoria, filtroFormaPagamento])
+  }, [despesas, filtroDataInicio, filtroDataFim, filtroCategoria, filtroFormaPagamento])
 
   const columns: ColumnManagerColumn[] = [
-    { key: 'data', label: COLUMN_LABELS.data, filter: { options: opcoesMes, selected: filtroMes, onChange: setFiltroMes } },
+    {
+      key: 'data',
+      label: COLUMN_LABELS.data,
+      dateRangeFilter: { from: filtroDataInicio, to: filtroDataFim, onChangeFrom: setFiltroDataInicio, onChangeTo: setFiltroDataFim },
+    },
     { key: 'descricao', label: COLUMN_LABELS.descricao },
     {
       key: 'categoria',
@@ -121,6 +121,7 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
       </div>
 
       <div className="toolbar" style={{ justifyContent: 'flex-end' }}>
+        <ImportarDespesa />
         <ColumnManagerPanel columns={columns} order={order} isVisible={isVisible} onToggleVisible={toggleVisible} onReorder={reorder} />
       </div>
 

@@ -60,6 +60,10 @@ export default function NotasFiscaisClient({
   notas: NotaFiscalComPedido[]
   pedidos: Pedido[]
 }) {
+  const [filtroVendaInicio, setFiltroVendaInicio] = useState('')
+  const [filtroVendaFim, setFiltroVendaFim] = useState('')
+  const [filtroEmissaoInicio, setFiltroEmissaoInicio] = useState('')
+  const [filtroEmissaoFim, setFiltroEmissaoFim] = useState('')
   const [filtroCliente, setFiltroCliente] = useState<string[]>([])
   const [filtroForma, setFiltroForma] = useState<string[]>([])
   const [filtroPago, setFiltroPago] = useState<string[]>([])
@@ -85,21 +89,42 @@ export default function NotasFiscaisClient({
 
   const notasFiltradas = useMemo(() => {
     return notas
+      .filter((n) => !filtroVendaInicio || n.pedido_data_venda >= filtroVendaInicio)
+      .filter((n) => !filtroVendaFim || n.pedido_data_venda <= filtroVendaFim)
+      .filter((n) => !filtroEmissaoInicio || (!!n.data_emissao && n.data_emissao >= filtroEmissaoInicio))
+      .filter((n) => !filtroEmissaoFim || (!!n.data_emissao && n.data_emissao <= filtroEmissaoFim))
       .filter((n) => !filtroCliente.length || filtroCliente.includes(n.pedido_cliente))
       .filter((n) => !filtroForma.length || filtroForma.includes(n.forma_pagamento ?? ''))
       .filter((n) => !filtroPago.length || filtroPago.includes(categoriaNota(n)))
       .sort((a, b) => (b.data_emissao ?? '').localeCompare(a.data_emissao ?? ''))
-  }, [notas, filtroCliente, filtroForma, filtroPago])
+  }, [
+    notas,
+    filtroVendaInicio,
+    filtroVendaFim,
+    filtroEmissaoInicio,
+    filtroEmissaoFim,
+    filtroCliente,
+    filtroForma,
+    filtroPago,
+  ])
 
   const columns: ColumnManagerColumn[] = [
     { key: 'numero_nota', label: COLUMN_LABELS.numero_nota },
     { key: 'pedido_numero', label: COLUMN_LABELS.pedido_numero },
-    { key: 'pedido_data_venda', label: COLUMN_LABELS.pedido_data_venda },
+    {
+      key: 'pedido_data_venda',
+      label: COLUMN_LABELS.pedido_data_venda,
+      dateRangeFilter: { from: filtroVendaInicio, to: filtroVendaFim, onChangeFrom: setFiltroVendaInicio, onChangeTo: setFiltroVendaFim },
+    },
     { key: 'pedido_cliente', label: COLUMN_LABELS.pedido_cliente, filter: { options: opcoesCliente, selected: filtroCliente, onChange: setFiltroCliente } },
     { key: 'valor', label: COLUMN_LABELS.valor },
     { key: 'valor_pago', label: COLUMN_LABELS.valor_pago },
     { key: 'falta_pagar', label: COLUMN_LABELS.falta_pagar },
-    { key: 'data_emissao', label: COLUMN_LABELS.data_emissao },
+    {
+      key: 'data_emissao',
+      label: COLUMN_LABELS.data_emissao,
+      dateRangeFilter: { from: filtroEmissaoInicio, to: filtroEmissaoFim, onChangeFrom: setFiltroEmissaoInicio, onChangeTo: setFiltroEmissaoFim },
+    },
     { key: 'previsao_pagamento', label: COLUMN_LABELS.previsao_pagamento },
     {
       key: 'pago',

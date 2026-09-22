@@ -1,12 +1,11 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { endOfMonth, format, startOfMonth } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import DateRangePicker from '@/components/DateRangePicker'
 import type { Despesa, Pedido } from '@/lib/types/domain'
-import { formatCurrency, formatDateBR, formatMonthLabel } from '@/lib/utils/format'
-
-function mesAtualISO() {
-  return new Date().toISOString().slice(0, 7)
-}
+import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 
 type Atividade = {
   id: string
@@ -18,32 +17,50 @@ type Atividade = {
 }
 
 export default function DashboardClient({ pedidos, despesas }: { pedidos: Pedido[]; despesas: Despesa[] }) {
-  const [filtroMes, setFiltroMes] = useState(mesAtualISO)
-
-  const opcoesMes = useMemo(() => {
-    const meses = new Set<string>([
-      ...pedidos.map((p) => p.data_venda.slice(0, 7)),
-      ...despesas.map((d) => d.data.slice(0, 7)),
-      filtroMes,
-    ])
-    return Array.from(meses)
-      .sort()
-      .reverse()
-      .map((m) => ({ value: m, label: formatMonthLabel(m) }))
-  }, [pedidos, despesas, filtroMes])
+  // Começa no mês atual (como o seletor de mês antigo), mas o usuário pode
+  // escolher qualquer intervalo no calendário — ou limpar para ver tudo.
+  const [periodoInicio, setPeriodoInicio] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [periodoFim, setPeriodoFim] = useState(() => format(endOfMonth(new Date()), 'yyyy-MM-dd'))
 
   const pedidosDoMes = useMemo(
-    () => pedidos.filter((p) => p.data_venda.slice(0, 7) === filtroMes),
-    [pedidos, filtroMes]
+    () =>
+      pedidos.filter(
+        (p) => (!periodoInicio || p.data_venda >= periodoInicio) && (!periodoFim || p.data_venda <= periodoFim)
+      ),
+    [pedidos, periodoInicio, periodoFim]
   )
   const despesasDoMes = useMemo(
-    () => despesas.filter((d) => d.data.slice(0, 7) === filtroMes),
-    [despesas, filtroMes]
+    () =>
+      despesas.filter((d) => (!periodoInicio || d.data >= periodoInicio) && (!periodoFim || d.data <= periodoFim)),
+    [despesas, periodoInicio, periodoFim]
   )
 
   const totalEntradas = useMemo(() => pedidosDoMes.reduce((soma, p) => soma + p.valor_pago, 0), [pedidosDoMes])
   const totalSaidas = useMemo(() => despesasDoMes.reduce((soma, d) => soma + d.valor, 0), [despesasDoMes])
   const saldo = totalEntradas - totalSaidas
+
+  // Ticket médio = valor total do pedido (não o recebido) dividido pela
+  // quantidade de vendas — sempre do mês/ano corrente do calendário,
+  // independente do período escolhido no filtro acima.
+  const hoje = new Date()
+  const mesAtualStr = format(hoje, 'yyyy-MM')
+  const anoAtualStr = format(hoje, 'yyyy')
+
+  const pedidosMesAtual = useMemo(
+    () => pedidos.filter((p) => p.data_venda.slice(0, 7) === mesAtualStr),
+    [pedidos, mesAtualStr]
+  )
+  const pedidosAnoAtual = useMemo(
+    () => pedidos.filter((p) => p.data_venda.slice(0, 4) === anoAtualStr),
+    [pedidos, anoAtualStr]
+  )
+
+  const ticketMedioMensal = pedidosMesAtual.length
+    ? pedidosMesAtual.reduce((soma, p) => soma + p.valor_total, 0) / pedidosMesAtual.length
+    : 0
+  const ticketMedioAnual = pedidosAnoAtual.length
+    ? pedidosAnoAtual.reduce((soma, p) => soma + p.valor_total, 0) / pedidosAnoAtual.length
+    : 0
 
   const atividadeDoMes = useMemo<Atividade[]>(() => {
     const daVenda: Atividade[] = pedidosDoMes
@@ -71,13 +88,14 @@ export default function DashboardClient({ pedidos, despesas }: { pedidos: Pedido
     <div>
       <div className="page-header">
         <h1>Resumo financeiro</h1>
-        <select className="select-control" value={filtroMes} onChange={(e) => setFiltroMes(e.target.value)}>
-          {opcoesMes.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
-          ))}
-        </select>
+        <DateRangePicker
+          from={periodoInicio}
+          to={periodoFim}
+          onChange={(de, ate) => {
+            setPeriodoInicio(de)
+            setPeriodoFim(ate)
+          }}
+        />
       </div>
 
       <div className="summary-cards">
@@ -93,9 +111,17 @@ export default function DashboardClient({ pedidos, despesas }: { pedidos: Pedido
           <span>Saldo do período</span>
           <strong>{formatCurrency(saldo)}</strong>
         </div>
+        <div className="summary-card">
+          <span>Ticket médio mensal ({format(hoje, "MMMM'/'yyyy", { locale: ptBR })})</span>
+          <strong>{formatCurrency(ticketMedioMensal)}</strong>
+        </div>
+        <div className="summary-card">
+          <span>Ticket médio anual ({anoAtualStr})</span>
+          <strong>{formatCurrency(ticketMedioAnual)}</strong>
+        </div>
       </div>
 
-      <h2>Atividade do mês</h2>
+      <h2>Atividade do período</h2>
       <div className="data-table">
         {atividadeDoMes.map((a) => (
           <div
@@ -117,7 +143,7 @@ export default function DashboardClient({ pedidos, despesas }: { pedidos: Pedido
             </div>
           </div>
         ))}
-        {atividadeDoMes.length === 0 && <div className="empty-state">Nenhuma movimentação neste mês.</div>}
+        {atividadeDoMes.length === 0 && <div className="empty-state">Nenhuma movimentação neste período.</div>}
       </div>
     </div>
   )

@@ -5,6 +5,7 @@ export const pedidoSchema = z
   .object({
     data_venda: z.string().min(1, 'Informe a data da venda'),
     data_evento: z.string().nullable().optional(),
+    hora_evento: z.string().nullable().optional(),
     cliente: z.string().min(1, 'Informe o cliente'),
     valor_total: z.coerce.number().positive('Valor total deve ser maior que zero'),
     valor_pago: z.coerce.number().nonnegative('Valor pago não pode ser negativo'),

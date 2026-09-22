@@ -18,12 +18,23 @@ export type FormaPagamento = (typeof FORMAS_PAGAMENTO)[number]
 export const STATUS_PEDIDO = ['pendente', '50% pago', 'pago'] as const
 export type StatusPedido = (typeof STATUS_PEDIDO)[number]
 
+export const STATUS_ORCAMENTO = ['pendente', 'aprovado', 'recusado'] as const
+export type StatusOrcamento = (typeof STATUS_ORCAMENTO)[number]
+
 export const CATEGORIAS_DESPESA = [
+  'Aluguel/Equipamento',
+  'Despesas pessoais',
+  'Insumo Bebidas',
+  'Insumo Embalagens',
+  'Insumo Frios e Laticínios',
+  'Insumo Hortifruti',
+  'Insumo Limpeza',
+  'Insumo Mercearia',
+  'Insumo Proteínas',
   'Insumos/Compras',
   'Mão de obra',
-  'Transporte',
-  'Aluguel/Equipamento',
   'Outras despesas',
+  'Transporte',
 ] as const
 export type CategoriaDespesa = (typeof CATEGORIAS_DESPESA)[number]
 
@@ -48,6 +59,7 @@ export interface Pedido {
   numero: number
   data_venda: string
   data_evento: string | null
+  hora_evento: string | null
   cliente: string
   valor_total: number
   valor_pago: number
@@ -58,6 +70,78 @@ export interface Pedido {
   banco: string | null
   data_pagamento: string | null
   status: StatusPedido
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export const TIPOS_PRODUTO = ['comida', 'servico'] as const
+export type TipoProduto = (typeof TIPOS_PRODUTO)[number]
+
+// Catálogo reaproveitável ao montar um Orçamento — ver o seletor "do
+// catálogo" em OrcamentoItensEditor, que usa peso_kg_padrao/valor_unit_padrao
+// pra preencher um novo item sem precisar digitar do zero. `ativo=false`
+// aposenta um produto sem apagar o histórico de orçamentos que já o usaram
+// (o item fica gravado com os valores da época dentro do orçamento).
+export interface Produto {
+  id: string
+  nome: string
+  tipo: TipoProduto
+  categoria: string | null
+  peso_kg_padrao: number | null
+  valor_unit_padrao: number
+  ativo: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Uma linha da lista de itens de uma seção do orçamento (ex.: um salgado
+// dentro de "Mesa Fixa", ou "Hora Chef" dentro de "Serviço"). peso_kg é
+// null para itens sem peso (a maioria dos itens de Serviço) — nesse caso a
+// coluna "Peso total" não se aplica.
+export interface ItemOrcamento {
+  nome: string
+  peso_kg: number | null
+  valor_unit: number
+  quantidade: number
+}
+
+// Uma seção da planilha de custo (ex.: "Mesa Fixa", "Prato Quente",
+// "Serviço") — o nome é livre porque cada evento usa nomes diferentes
+// ("Volante", "Prato Principal" etc.). `tipo` só controla se a seção
+// mostra as colunas de peso (comida) ou não (serviço).
+export interface SecaoOrcamento {
+  nome: string
+  tipo: 'comida' | 'servico'
+  itens: ItemOrcamento[]
+}
+
+// Proposta enviada a um cliente em potencial, antes de virar um Pedido
+// confirmado. `pedido_id` só é preenchido quando o orçamento é convertido
+// (ver converterEmPedido em app/(protected)/orcamentos/actions.ts) — a
+// partir daí ele não pode ser convertido de novo.
+//
+// `itens` é o detalhamento por seções (ver SecaoOrcamento) no formato das
+// planilhas de custo do usuário — quando preenchido, `valor_total` é
+// recalculado a partir dele no servidor (ver actions.ts), em vez de vir do
+// campo digitado no formulário.
+export interface Orcamento {
+  id: string
+  numero: number
+  data_orcamento: string
+  cliente: string
+  entidade: EntidadeTipo
+  data_evento: string | null
+  hora_evento: string | null
+  descricao: string | null
+  valor_total: number
+  validade: string | null
+  status: StatusOrcamento
+  pedido_id: string | null
+  numero_pessoas: number | null
+  percentual_extras: number
+  itens: SecaoOrcamento[]
   created_by: string | null
   created_at: string
   updated_at: string
@@ -144,6 +228,8 @@ export type TipoUsuario = (typeof TIPOS_USUARIO)[number]
 // 0009_usuarios_paginas_acesso.sql (usuario_tem_acesso) também.
 export const PAGINAS_SISTEMA = [
   { key: 'dashboard', label: 'Resumo financeiro' },
+  { key: 'orcamentos', label: 'Orçamentos' },
+  { key: 'produtos', label: 'Produtos' },
   { key: 'pedidos', label: 'Pedidos' },
   { key: 'notas-fiscais', label: 'Relatório NF' },
   { key: 'despesas', label: 'Despesas' },

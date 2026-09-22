@@ -19,6 +19,7 @@ export interface Database {
           numero: number
           data_venda: string
           data_evento: string | null
+          hora_evento: string | null
           cliente: string
           valor_total: number
           valor_pago: number
@@ -38,6 +39,7 @@ export interface Database {
           numero?: number
           data_venda: string
           data_evento?: string | null
+          hora_evento?: string | null
           cliente: string
           valor_total: number
           valor_pago?: number
@@ -52,6 +54,78 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['pedidos']['Insert']>
+        Relationships: []
+      }
+      produtos: {
+        Row: {
+          id: string
+          nome: string
+          tipo: string
+          categoria: string | null
+          peso_kg_padrao: number | null
+          valor_unit_padrao: number
+          ativo: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          tipo?: string
+          categoria?: string | null
+          peso_kg_padrao?: number | null
+          valor_unit_padrao: number
+          ativo?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['produtos']['Insert']>
+        Relationships: []
+      }
+      orcamentos: {
+        Row: {
+          id: string
+          numero: number
+          data_orcamento: string
+          cliente: string
+          entidade: string
+          data_evento: string | null
+          hora_evento: string | null
+          descricao: string | null
+          valor_total: number
+          validade: string | null
+          status: string
+          pedido_id: string | null
+          numero_pessoas: number | null
+          percentual_extras: number
+          itens: Json
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          numero?: number
+          data_orcamento?: string
+          cliente: string
+          entidade: string
+          data_evento?: string | null
+          hora_evento?: string | null
+          descricao?: string | null
+          valor_total: number
+          validade?: string | null
+          status?: string
+          pedido_id?: string | null
+          numero_pessoas?: number | null
+          percentual_extras?: number
+          itens?: Json
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['orcamentos']['Insert']>
         Relationships: []
       }
       despesas: {

@@ -64,6 +64,7 @@ const COLUMN_LABELS: Record<string, string> = {
   numero: 'Nº',
   data_venda: 'DATA DA VENDA',
   data_evento: 'DATA DO EVENTO',
+  hora_evento: 'HORA DO EVENTO',
   cliente: 'CLIENTE',
   valor_total: 'VALOR',
   valor_pago: 'VALOR JÁ PAGO',
@@ -71,6 +72,7 @@ const COLUMN_LABELS: Record<string, string> = {
   emissao_nota: 'NOTA',
   entidade: 'ENT.',
   forma_pagamento: 'PAGAMENTO',
+  banco: 'BANCO',
   data_pagamento: 'DT PAGAMENTO',
   status: 'STATUS',
 }
@@ -79,6 +81,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
   numero: '44px',
   data_venda: '110px',
   data_evento: '110px',
+  hora_evento: '100px',
   cliente: '1fr',
   valor_total: '100px',
   valor_pago: '100px',
@@ -86,6 +89,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
   emissao_nota: '55px',
   entidade: '55px',
   forma_pagamento: '130px',
+  banco: '120px',
   data_pagamento: '130px',
   status: '100px',
 }
@@ -137,6 +141,7 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
       dateRangeFilter: { from: filtroDataInicio, to: filtroDataFim, onChangeFrom: setFiltroDataInicio, onChangeTo: setFiltroDataFim },
     },
     { key: 'data_evento', label: COLUMN_LABELS.data_evento },
+    { key: 'hora_evento', label: COLUMN_LABELS.hora_evento },
     { key: 'cliente', label: COLUMN_LABELS.cliente, filter: { options: opcoesCliente, selected: filtroCliente, onChange: setFiltroCliente } },
     { key: 'valor_total', label: COLUMN_LABELS.valor_total },
     { key: 'valor_pago', label: COLUMN_LABELS.valor_pago },
@@ -163,6 +168,7 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
       label: COLUMN_LABELS.forma_pagamento,
       filter: { options: opcoesFormaPagamento, selected: filtroFormaPagamento, onChange: setFiltroFormaPagamento },
     },
+    { key: 'banco', label: COLUMN_LABELS.banco },
     { key: 'data_pagamento', label: COLUMN_LABELS.data_pagamento },
     {
       key: 'status',
@@ -213,6 +219,8 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
         return <div className="col-center text-muted">{formatDateBR(p.data_venda)}</div>
       case 'data_evento':
         return <div className="col-center text-muted">{p.data_evento ? formatDateBR(p.data_evento) : '-'}</div>
+      case 'hora_evento':
+        return <div className="col-center text-muted">{p.hora_evento ? p.hora_evento.slice(0, 5) : '-'}</div>
       case 'cliente':
         return <div className="col-center text-strong">{p.cliente}</div>
       case 'valor_total':
@@ -249,6 +257,8 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
             </select>
           </div>
         )
+      case 'banco':
+        return <div className="col-center text-muted">{p.banco ?? '-'}</div>
       case 'data_pagamento':
         return (
           <div className="col-center">

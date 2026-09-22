@@ -77,6 +77,10 @@ export default function PedidoForm({ pedido, onClose }: { pedido?: Pedido; onClo
             Data do evento
             <input type="date" name="data_evento" defaultValue={pedido?.data_evento ?? ''} />
           </label>
+          <label>
+            Hora do evento
+            <input type="time" name="hora_evento" defaultValue={pedido?.hora_evento?.slice(0, 5) ?? ''} />
+          </label>
         </div>
         <label>
           Entidade

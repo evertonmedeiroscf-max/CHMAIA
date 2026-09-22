@@ -19,6 +19,7 @@
   --amber-bg: oklch(0.94 0.1 95);
   --amber-text: oklch(0.5 0.13 90);
   --today: oklch(0.6 0.09 150);
+  --accent-orange: oklch(0.72 0.17 50);
   --shadow: 0 4px 12px oklch(0.15 0.01 80 / 0.15);
   --backdrop: oklch(0.15 0.01 80 / 0.45);
   --radius: 4px;
@@ -225,6 +226,27 @@ button {
   padding: 32px 40px;
 }
 
+/* Barra com o hambúrguer que substitui a sidebar em telas estreitas — fica
+   escondida no desktop, onde a sidebar fixa já cobre a marca. */
+.mobile-topbar {
+  display: none;
+}
+
+.mobile-menu-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  padding: 6px 10px;
+}
+
+.mobile-nav-backdrop {
+  display: none;
+}
+
 /* ---------- Buttons ---------- */
 .btn-primary {
   padding: 10px 16px;
@@ -343,7 +365,7 @@ input[type='password'] {
 /* ---------- Cards / summary ---------- */
 .summary-cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 16px;
   margin-bottom: 32px;
 }
@@ -569,8 +591,8 @@ input[type='password'] {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   z-index: 40;
-  width: 270px;
-  max-height: 420px;
+  width: 300px;
+  max-height: 460px;
   overflow: auto;
   padding: 8px;
 }
@@ -638,6 +660,100 @@ input[type='password'] {
   overflow: auto;
 }
 
+/* ---------- Date range picker ---------- */
+.range-calendar {
+  user-select: none;
+}
+
+.range-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.range-cal-title {
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.range-cal-nav {
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: var(--text-muted);
+  padding: 2px 8px;
+}
+
+.range-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 4px;
+}
+
+.range-cal-weekday {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 0 4px;
+}
+
+.range-cal-day {
+  height: 30px;
+  border: none;
+  background: none;
+  font-size: 12px;
+  color: var(--text);
+  padding: 0;
+  border-radius: 0;
+}
+
+.range-cal-day:hover {
+  background: var(--border-soft);
+}
+
+.range-cal-day.in-range {
+  background: oklch(0.95 0.008 60);
+}
+
+.range-cal-day.edge {
+  background: var(--accent-orange);
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.range-cal-day.today:not(.edge) {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.range-cal-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.range-picker {
+  position: relative;
+}
+
+.range-picker-pop {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  z-index: 40;
+  width: 280px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
 /* ---------- Calendar ---------- */
 .calendar {
   background: var(--surface);
@@ -699,11 +815,14 @@ input[type='password'] {
   background: var(--bg);
 }
 
-.calendar-cell.today {
-  border-color: var(--today);
-}
-
 .calendar-day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text);
@@ -714,7 +833,9 @@ input[type='password'] {
 }
 
 .calendar-cell.today .calendar-day-number {
-  color: var(--primary);
+  background: var(--accent-orange);
+  color: #fff;
+  font-weight: 700;
 }
 
 .calendar-event {
@@ -864,26 +985,82 @@ input[type='password'] {
   .app-shell {
     flex-direction: column;
   }
-  .sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
-    flex-direction: row;
-    flex-wrap: wrap;
+
+  /* A sidebar vira um menu deslizante (fora da tela até abrir), acionado
+     pelo botão hambúrguer da .mobile-topbar — em vez de empilhar ~8 links
+     no topo, o que sobraria pouco espaço pra tela em si. */
+  .mobile-topbar {
+    display: flex;
     align-items: center;
-    overflow-y: visible;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 70;
+  }
+  .mobile-topbar .sidebar-brand {
+    font-size: 14px;
+  }
+  .mobile-menu-toggle {
+    display: block;
+  }
+  .mobile-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: var(--backdrop);
+    z-index: 80;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    max-width: 82vw;
+    height: 100vh;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+    z-index: 90;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .sidebar .sidebar-header {
+    display: none;
   }
   .sidebar-spacer {
-    display: none;
+    flex: 1;
   }
   .app-content {
     margin-left: 0;
-    padding: 20px;
+    padding: 16px;
+  }
+  .page-header {
+    flex-wrap: wrap;
+    gap: 10px;
   }
   .summary-cards {
     grid-template-columns: 1fr;
   }
   .modal-row {
     flex-direction: column;
+  }
+  .modal-panel {
+    padding: 20px;
+  }
+  /* Painéis flutuantes (colunas, filtro de coluna, seletor de período)
+     ficam ancorados à direita do botão que os abre — sem isso, num
+     aparelho estreito eles podem passar da borda esquerda da tela. */
+  .column-manager-panel,
+  .range-picker-pop,
+  .col-filter-menu {
+    max-width: calc(100vw - 32px);
   }
 }

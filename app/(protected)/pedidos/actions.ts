@@ -11,6 +11,7 @@ function parseFormData(formData: FormData) {
   return {
     data_venda: formData.get('data_venda'),
     data_evento: formData.get('data_evento') || null,
+    hora_evento: formData.get('hora_evento') || null,
     cliente: formData.get('cliente'),
     valor_total: formData.get('valor_total'),
     valor_pago: formData.get('valor_pago') || 0,

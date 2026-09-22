@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { DateRangeCalendar } from '@/components/DateRangePicker'
 
 export type ColumnManagerColumn = {
   key: string
@@ -143,38 +144,15 @@ export default function ColumnManagerPanel({
                       Período
                       {col.dateRangeFilter.from || col.dateRangeFilter.to ? ' (ativo)' : ''}
                     </summary>
-                    <div className="column-manager-filter-options">
-                      <label className="col-filter-option" style={{ justifyContent: 'space-between' }}>
-                        De
-                        <input
-                          type="date"
-                          className="select-control"
-                          value={col.dateRangeFilter.from}
-                          onChange={(e) => col.dateRangeFilter!.onChangeFrom(e.target.value)}
-                        />
-                      </label>
-                      <label className="col-filter-option" style={{ justifyContent: 'space-between' }}>
-                        Até
-                        <input
-                          type="date"
-                          className="select-control"
-                          value={col.dateRangeFilter.to}
-                          onChange={(e) => col.dateRangeFilter!.onChangeTo(e.target.value)}
-                        />
-                      </label>
-                      {(col.dateRangeFilter.from || col.dateRangeFilter.to) && (
-                        <button
-                          type="button"
-                          className="action-link"
-                          style={{ marginTop: 4 }}
-                          onClick={() => {
-                            col.dateRangeFilter!.onChangeFrom('')
-                            col.dateRangeFilter!.onChangeTo('')
-                          }}
-                        >
-                          limpar período
-                        </button>
-                      )}
+                    <div className="column-manager-filter-options" style={{ maxHeight: 'none', overflow: 'visible' }}>
+                      <DateRangeCalendar
+                        from={col.dateRangeFilter.from}
+                        to={col.dateRangeFilter.to}
+                        onChange={(de, ate) => {
+                          col.dateRangeFilter!.onChangeFrom(de)
+                          col.dateRangeFilter!.onChangeTo(ate)
+                        }}
+                      />
                     </div>
                   </details>
                 )}

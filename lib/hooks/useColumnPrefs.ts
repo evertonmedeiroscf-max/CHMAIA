@@ -14,9 +14,15 @@ export function useColumnPrefs(storageKey: string, defaultOrder: string[]) {
       const raw = window.localStorage.getItem(storageKey)
       if (raw) {
         const parsed = JSON.parse(raw) as StoredPrefs
-        const known = (parsed.order ?? []).filter((k) => defaultOrder.includes(k))
-        const missing = defaultOrder.filter((k) => !known.includes(k))
-        setOrder([...known, ...missing])
+        const merged = (parsed.order ?? []).filter((k) => defaultOrder.includes(k))
+        // Coluna criada depois que a ordem foi salva: encaixa logo após a
+        // que a precede na ordem padrão, em vez de cair no fim da tabela.
+        defaultOrder.forEach((key, i) => {
+          if (merged.includes(key)) return
+          const anterior = i > 0 ? merged.indexOf(defaultOrder[i - 1]) : -1
+          merged.splice(anterior + 1, 0, key)
+        })
+        setOrder(merged)
         setHidden(new Set((parsed.hidden ?? []).filter((k) => defaultOrder.includes(k))))
       }
     } catch {
