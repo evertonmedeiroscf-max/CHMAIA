@@ -56,6 +56,32 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['pedidos']['Insert']>
         Relationships: []
       }
+      historico_alteracoes: {
+        Row: {
+          id: string
+          tabela: string
+          registro_id: string | null
+          operacao: string
+          dados_antigos: Json | null
+          dados_novos: Json | null
+          usuario_id: string | null
+          usuario_email: string | null
+          criado_em: string
+        }
+        Insert: {
+          id?: string
+          tabela: string
+          registro_id?: string | null
+          operacao: string
+          dados_antigos?: Json | null
+          dados_novos?: Json | null
+          usuario_id?: string | null
+          usuario_email?: string | null
+          criado_em?: string
+        }
+        Update: Partial<Database['public']['Tables']['historico_alteracoes']['Insert']>
+        Relationships: []
+      }
       produtos: {
         Row: {
           id: string

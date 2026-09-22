@@ -29,7 +29,9 @@ export default function NavBar({
   const pathname = usePathname()
   const [menuAberto, setMenuAberto] = useState(false)
   const liberados = isAdm ? LINKS : LINKS.filter((link) => paginas.includes(link.href.slice(1)))
-  const links = isAdm ? [...liberados, { href: '/usuarios', label: 'Usuários' }] : liberados
+  const links = isAdm
+    ? [...liberados, { href: '/usuarios', label: 'Usuários' }, { href: '/historico', label: 'Histórico' }]
+    : liberados
 
   // Fecha o menu ao trocar de página (o layout não remonta em navegação
   // client-side, então sem isso o menu ficaria aberto na tela seguinte).

@@ -220,6 +220,26 @@ export interface NotaFiscalComPedido extends NotaFiscal {
   pedido_data_venda: string
 }
 
+export const OPERACOES_HISTORICO = ['insert', 'update', 'delete'] as const
+export type OperacaoHistorico = (typeof OPERACOES_HISTORICO)[number]
+
+// Uma linha do histórico de alterações — gravada automaticamente por
+// trigger (ver registrar_historico() em 0015_historico_alteracoes.sql)
+// sempre que um usuário cria, edita ou exclui algo em qualquer tabela de
+// negócio. dados_antigos/dados_novos são o retrato completo da linha antes
+// e depois; a tela de Histórico calcula o "o que mudou" comparando os dois.
+export interface HistoricoAlteracao {
+  id: string
+  tabela: string
+  registro_id: string | null
+  operacao: OperacaoHistorico
+  dados_antigos: Record<string, unknown> | null
+  dados_novos: Record<string, unknown> | null
+  usuario_id: string | null
+  usuario_email: string | null
+  criado_em: string
+}
+
 export const TIPOS_USUARIO = ['usuario', 'adm'] as const
 export type TipoUsuario = (typeof TIPOS_USUARIO)[number]
 
