@@ -1,8 +1,9 @@
 'use client'
 
-import { cloneElement, useMemo, useState } from 'react'
+import { cloneElement, useEffect, useMemo, useState } from 'react'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
 import PedidosCalendar from './PedidosCalendar'
 import PedidoForm from './PedidoForm'
 import { ENTIDADE_TIPOS, STATUS_PEDIDO, type FormaPagamento, type Pedido } from '@/lib/types/domain'
@@ -96,6 +97,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
 
 const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '70px'
+const ITENS_POR_PAGINA = 30
 
 export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
   const [viewMode, setViewMode] = useState<ViewMode>('lista')
@@ -108,6 +110,7 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
   const [filtroStatus, setFiltroStatus] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<Pedido | undefined>(undefined)
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   const { order, isVisible, toggleVisible, reorder } = useColumnPrefs('colunas:pedidos', DEFAULT_ORDER)
 
@@ -132,6 +135,18 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
       return true
     })
   }, [pedidos, filtroDataInicio, filtroDataFim, filtroCliente, filtroNota, filtroEntidade, filtroFormaPagamento, filtroStatus])
+
+  // Volta pra primeira página sempre que o filtro muda o conjunto de
+  // resultados — sem isso, dava pra ficar "preso" numa página vazia.
+  useEffect(() => {
+    setPaginaAtual(1)
+  }, [pedidosFiltrados])
+
+  const totalPaginas = Math.max(1, Math.ceil(pedidosFiltrados.length / ITENS_POR_PAGINA))
+  const pedidosPaginados = useMemo(
+    () => pedidosFiltrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
+    [pedidosFiltrados, paginaAtual]
+  )
 
   const columns: ColumnManagerColumn[] = [
     { key: 'numero', label: COLUMN_LABELS.numero },
@@ -323,7 +338,7 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
               <div></div>
             </div>
 
-            {pedidosFiltrados.map((p) => (
+            {pedidosPaginados.map((p) => (
               <div key={p.id} className="table-row" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
                 {visibleOrder.map((key) => cloneElement(renderCell(key, p), { key }))}
                 <div className="col-center">
@@ -336,6 +351,14 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
 
             {pedidosFiltrados.length === 0 && <div className="empty-state">Nenhum pedido encontrado.</div>}
           </div>
+
+          <Pagination
+            paginaAtual={paginaAtual}
+            totalPaginas={totalPaginas}
+            totalItens={pedidosFiltrados.length}
+            itensPorPagina={ITENS_POR_PAGINA}
+            onChange={setPaginaAtual}
+          />
         </>
       )}
 
