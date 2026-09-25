@@ -41,12 +41,26 @@ export default function PedidosCalendar({
   const [mesAtual, setMesAtual] = useState(() => startOfMonth(new Date()))
   const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
 
+  // O calendário sempre posiciona o pedido pela data do evento — é quando o
+  // buffet efetivamente acontece. Só cai pra data da venda quando não há
+  // data do evento cadastrada (pedido ainda sem previsão de evento).
   const pedidosPorDia = useMemo(() => {
     const mapa = new Map<string, Pedido[]>()
     for (const pedido of pedidos) {
-      const lista = mapa.get(pedido.data_venda) ?? []
+      const chave = pedido.data_evento || pedido.data_venda
+      const lista = mapa.get(chave) ?? []
       lista.push(pedido)
-      mapa.set(pedido.data_venda, lista)
+      mapa.set(chave, lista)
+    }
+    // Dentro do dia, ordena pela hora do evento (quem não tem hora fica por
+    // último) — assim a lista/etiquetas seguem a ordem real dos eventos.
+    for (const lista of mapa.values()) {
+      lista.sort((a, b) => {
+        if (!a.hora_evento && !b.hora_evento) return 0
+        if (!a.hora_evento) return 1
+        if (!b.hora_evento) return -1
+        return a.hora_evento.localeCompare(b.hora_evento)
+      })
     }
     return mapa
   }, [pedidos])

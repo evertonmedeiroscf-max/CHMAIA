@@ -186,8 +186,14 @@ export interface Database {
           nome: string
           categoria: string
           unidade_medida: string
+          preco_corrente: number | null
+          custo_unidade: number | null
+          data_atualizacao_preco: string | null
+          marca_fornecedor: string | null
           quantidade_atual: number
           quantidade_minima: number
+          valor_total_estoque: number
+          data_atualizacao_estoque: string | null
           created_at: string
           updated_at: string
         }
@@ -196,6 +202,9 @@ export interface Database {
           nome: string
           categoria: string
           unidade_medida: string
+          preco_corrente?: number | null
+          custo_unidade?: number | null
+          marca_fornecedor?: string | null
           quantidade_atual?: number
           quantidade_minima?: number
           created_at?: string

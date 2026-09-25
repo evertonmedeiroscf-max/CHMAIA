@@ -502,6 +502,12 @@ input[type='password'] {
   background: var(--danger-bg-soft) !important;
 }
 
+.table-total {
+  background: oklch(0.97 0.004 80) !important;
+  font-weight: 700;
+  border-top: 2px solid var(--border-strong);
+}
+
 .low-stock-flag {
   display: inline-block;
   margin-left: 8px;

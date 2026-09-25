@@ -159,13 +159,25 @@ export interface Despesa {
   updated_at: string
 }
 
+// preco_corrente/custo_unidade/marca_fornecedor são digitados pelo usuário.
+// valor_total_estoque é sempre calculado pelo banco (custo_unidade ×
+// quantidade_atual). data_atualizacao_preco e data_atualizacao_estoque
+// também são automáticas — marcadas sozinhas quando o preço/custo ou a
+// quantidade mudam (ver triggers em 0016_estoque_colunas_detalhadas.sql) —
+// nunca aparecem como campo editável no formulário.
 export interface EstoqueItem {
   id: string
   nome: string
   categoria: CategoriaEstoque
   unidade_medida: UnidadeMedida
-  quantidade_atual: number
+  preco_corrente: number | null
+  custo_unidade: number | null
+  data_atualizacao_preco: string | null
+  marca_fornecedor: string | null
   quantidade_minima: number
+  quantidade_atual: number
+  valor_total_estoque: number
+  data_atualizacao_estoque: string | null
   created_at: string
   updated_at: string
 }

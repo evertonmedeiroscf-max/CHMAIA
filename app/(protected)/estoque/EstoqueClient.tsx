@@ -7,23 +7,39 @@ import Modal from '@/components/Modal'
 import ItemForm from './ItemForm'
 import MovimentoForm from './MovimentoForm'
 import { CATEGORIAS_ESTOQUE, UNIDADES_MEDIDA, type EstoqueItem } from '@/lib/types/domain'
+import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
 
+// Ordem fixa pedida: Descrição/Item, Categoria, Unid./Medida, Preço
+// corrente, Custo/Und., Dt atualiz. preço, Marca/Fornecedor, Estoque
+// mínimo, Estoque atual, Valor total em estoque, Dt atualiz. estoque.
 const COLUMN_LABELS: Record<string, string> = {
-  nome: 'ITEM',
+  nome: 'DESCRIÇÃO / ITEM',
   categoria: 'CATEGORIA',
-  unidade_medida: 'UNIDADE',
-  quantidade_atual: 'ATUAL',
-  quantidade_minima: 'MÍNIMO',
+  unidade_medida: 'UNID. / MEDIDA',
+  preco_corrente: 'PREÇO CORRENTE',
+  custo_unidade: 'CUSTO / UND.',
+  data_atualizacao_preco: 'DT ATUALIZ. PREÇO',
+  marca_fornecedor: 'MARCA / FORNECEDOR',
+  quantidade_minima: 'ESTOQUE MÍNIMO',
+  quantidade_atual: 'ESTOQUE ATUAL',
+  valor_total_estoque: 'VALOR TOTAL EM ESTOQUE',
+  data_atualizacao_estoque: 'DT ATUALIZ. ESTOQUE',
 }
 
 const COLUMN_WIDTHS: Record<string, string> = {
   nome: '1fr',
-  categoria: '150px',
+  categoria: '140px',
   unidade_medida: '110px',
-  quantidade_atual: '110px',
+  preco_corrente: '120px',
+  custo_unidade: '110px',
+  data_atualizacao_preco: '130px',
+  marca_fornecedor: '160px',
   quantidade_minima: '110px',
+  quantidade_atual: '110px',
+  valor_total_estoque: '150px',
+  data_atualizacao_estoque: '130px',
 }
 
 const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
@@ -46,6 +62,13 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
     [itens, filtroCategoria, filtroUnidade]
   )
 
+  // Somatório geral do estoque — soma o valor total (custo × quantidade)
+  // dos itens que estão sendo mostrados na tela (respeita os filtros ativos).
+  const totalGeralEstoque = useMemo(
+    () => itensFiltrados.reduce((soma, item) => soma + item.valor_total_estoque, 0),
+    [itensFiltrados]
+  )
+
   const columns: ColumnManagerColumn[] = [
     { key: 'nome', label: COLUMN_LABELS.nome },
     {
@@ -58,8 +81,14 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
       label: COLUMN_LABELS.unidade_medida,
       filter: { options: UNIDADES_MEDIDA.map((u) => ({ value: u, label: u })), selected: filtroUnidade, onChange: setFiltroUnidade },
     },
-    { key: 'quantidade_atual', label: COLUMN_LABELS.quantidade_atual },
+    { key: 'preco_corrente', label: COLUMN_LABELS.preco_corrente },
+    { key: 'custo_unidade', label: COLUMN_LABELS.custo_unidade },
+    { key: 'data_atualizacao_preco', label: COLUMN_LABELS.data_atualizacao_preco },
+    { key: 'marca_fornecedor', label: COLUMN_LABELS.marca_fornecedor },
     { key: 'quantidade_minima', label: COLUMN_LABELS.quantidade_minima },
+    { key: 'quantidade_atual', label: COLUMN_LABELS.quantidade_atual },
+    { key: 'valor_total_estoque', label: COLUMN_LABELS.valor_total_estoque },
+    { key: 'data_atualizacao_estoque', label: COLUMN_LABELS.data_atualizacao_estoque },
   ]
 
   const visibleOrder = order.filter(isVisible)
@@ -84,14 +113,30 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
         return <div className="col-center text-muted">{item.categoria}</div>
       case 'unidade_medida':
         return <div className="col-center text-muted">{item.unidade_medida}</div>
+      case 'preco_corrente':
+        return <div className="col-center text-muted">{item.preco_corrente != null ? formatCurrency(item.preco_corrente) : '-'}</div>
+      case 'custo_unidade':
+        return <div className="col-center text-muted">{item.custo_unidade != null ? formatCurrency(item.custo_unidade) : '-'}</div>
+      case 'data_atualizacao_preco':
+        return <div className="col-center text-muted">{item.data_atualizacao_preco ? formatDateBR(item.data_atualizacao_preco) : '-'}</div>
+      case 'marca_fornecedor':
+        return <div className="col-center text-muted">{item.marca_fornecedor ?? '-'}</div>
+      case 'quantidade_minima':
+        return <div className="col-center text-muted">{item.quantidade_minima}</div>
       case 'quantidade_atual':
         return (
           <div className={`col-center${isLow ? ' valor-falta-positiva' : ''}`} style={{ fontWeight: 600 }}>
             {item.quantidade_atual}
           </div>
         )
-      case 'quantidade_minima':
-        return <div className="col-center text-muted">{item.quantidade_minima}</div>
+      case 'valor_total_estoque':
+        return (
+          <div className="col-center" style={{ fontWeight: 600 }}>
+            {formatCurrency(item.valor_total_estoque)}
+          </div>
+        )
+      case 'data_atualizacao_estoque':
+        return <div className="col-center text-muted">{item.data_atualizacao_estoque ? formatDateBR(item.data_atualizacao_estoque) : '-'}</div>
       default:
         return <div />
     }
@@ -136,6 +181,22 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
           )
         })}
         {itensFiltrados.length === 0 && <div className="empty-state">Nenhum item encontrado.</div>}
+        {itensFiltrados.length > 0 && (
+          <div className="table-row table-total" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
+            {visibleOrder.map((key) => {
+              if (key === 'nome') return <div key={key}>TOTAL GERAL DO ESTOQUE</div>
+              if (key === 'valor_total_estoque') {
+                return (
+                  <div key={key} className="col-center">
+                    {formatCurrency(totalGeralEstoque)}
+                  </div>
+                )
+              }
+              return <div key={key} />
+            })}
+            <div></div>
+          </div>
+        )}
       </div>
 
       {modal?.type === 'item' && (

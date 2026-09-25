@@ -69,6 +69,25 @@ export default function ItemForm({ item, onClose }: { item?: EstoqueItem; onClos
           </select>
         </label>
         <div className="modal-row">
+          <label>
+            Preço corrente (R$)
+            <input type="number" name="preco_corrente" step="0.01" min="0" defaultValue={item?.preco_corrente ?? ''} />
+          </label>
+          <label>
+            Custo / und. (R$)
+            <input type="number" name="custo_unidade" step="0.01" min="0" defaultValue={item?.custo_unidade ?? ''} />
+          </label>
+        </div>
+        <label>
+          Marca / Fornecedor
+          <input
+            type="text"
+            name="marca_fornecedor"
+            placeholder="Ex: Sadia"
+            defaultValue={item?.marca_fornecedor ?? ''}
+          />
+        </label>
+        <div className="modal-row">
           {!item && (
             <label>
               Qtd. atual

@@ -11,6 +11,9 @@ export async function createEstoqueItem(_prevState: ActionState, formData: FormD
     nome: formData.get('nome'),
     categoria: formData.get('categoria'),
     unidade_medida: formData.get('unidade_medida'),
+    preco_corrente: formData.get('preco_corrente') || null,
+    custo_unidade: formData.get('custo_unidade') || null,
+    marca_fornecedor: formData.get('marca_fornecedor') || null,
     quantidade_atual: formData.get('quantidade_atual') || 0,
     quantidade_minima: formData.get('quantidade_minima') || 0,
   })
@@ -33,6 +36,9 @@ export async function updateEstoqueItem(
     nome: formData.get('nome'),
     categoria: formData.get('categoria'),
     unidade_medida: formData.get('unidade_medida'),
+    preco_corrente: formData.get('preco_corrente') || null,
+    custo_unidade: formData.get('custo_unidade') || null,
+    marca_fornecedor: formData.get('marca_fornecedor') || null,
     quantidade_minima: formData.get('quantidade_minima') || 0,
   })
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }

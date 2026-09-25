@@ -5,6 +5,9 @@ export const estoqueItemSchema = z.object({
   nome: z.string().min(1, 'Informe o nome do item'),
   categoria: z.enum(CATEGORIAS_ESTOQUE),
   unidade_medida: z.enum(UNIDADES_MEDIDA),
+  preco_corrente: z.coerce.number().nonnegative('Preço não pode ser negativo').nullable().optional(),
+  custo_unidade: z.coerce.number().nonnegative('Custo não pode ser negativo').nullable().optional(),
+  marca_fornecedor: z.string().nullable().optional(),
   quantidade_minima: z.coerce.number().nonnegative('Quantidade mínima não pode ser negativa'),
 })
 
