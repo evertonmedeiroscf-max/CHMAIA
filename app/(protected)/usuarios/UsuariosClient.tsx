@@ -1,11 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import Pagination from '@/components/Pagination'
 import { PAGINAS_SISTEMA, type TipoUsuario, type Usuario } from '@/lib/types/domain'
 import { formatDateBR } from '@/lib/utils/format'
 import { definirAprovacao, definirPaginas, definirTipo } from './actions'
 
 const USUARIOS_GRID = '1fr 130px 130px 190px 120px 120px'
+const ITENS_POR_PAGINA = 15
 
 export default function UsuariosClient({
   usuarios,
@@ -15,6 +17,7 @@ export default function UsuariosClient({
   currentUserId: string
 }) {
   const [filtro, setFiltro] = useState<'todos' | 'pendentes' | 'aprovados'>('todos')
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   const usuariosFiltrados = useMemo(() => {
     return usuarios.filter((u) => {
@@ -23,6 +26,16 @@ export default function UsuariosClient({
       return true
     })
   }, [usuarios, filtro])
+
+  useEffect(() => {
+    setPaginaAtual(1)
+  }, [usuariosFiltrados])
+
+  const totalPaginas = Math.max(1, Math.ceil(usuariosFiltrados.length / ITENS_POR_PAGINA))
+  const usuariosPaginados = useMemo(
+    () => usuariosFiltrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
+    [usuariosFiltrados, paginaAtual]
+  )
 
   async function alternarAprovacao(usuario: Usuario) {
     await definirAprovacao(usuario.id, !usuario.aprovado)
@@ -69,7 +82,7 @@ export default function UsuariosClient({
           <div className="col-center">CADASTRO</div>
           <div className="col-center">AÇÃO</div>
         </div>
-        {usuariosFiltrados.map((u) => {
+        {usuariosPaginados.map((u) => {
           const isSelf = u.id === currentUserId
           return (
             <div key={u.id} className="table-row" style={{ gridTemplateColumns: USUARIOS_GRID }}>
@@ -139,6 +152,14 @@ export default function UsuariosClient({
         })}
         {usuariosFiltrados.length === 0 && <div className="empty-state">Nenhum usuário encontrado.</div>}
       </div>
+
+      <Pagination
+        paginaAtual={paginaAtual}
+        totalPaginas={totalPaginas}
+        totalItens={usuariosFiltrados.length}
+        itensPorPagina={ITENS_POR_PAGINA}
+        onChange={setPaginaAtual}
+      />
     </div>
   )
 }

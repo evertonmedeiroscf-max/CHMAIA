@@ -1,8 +1,9 @@
 'use client'
 
-import { cloneElement, useMemo, useState, useTransition } from 'react'
+import { cloneElement, useEffect, useMemo, useState, useTransition } from 'react'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
 import OrcamentoForm from './OrcamentoForm'
 import { ENTIDADE_TIPOS, STATUS_ORCAMENTO, type Orcamento, type Produto } from '@/lib/types/domain'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
@@ -56,6 +57,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
 
 const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '150px'
+const ITENS_POR_PAGINA = 15
 
 export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos: Orcamento[]; produtos: Produto[] }) {
   const [filtroDataInicio, setFiltroDataInicio] = useState('')
@@ -68,6 +70,7 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
   const [convertendoId, setConvertendoId] = useState<string | null>(null)
   const [erroConversao, setErroConversao] = useState('')
   const [, startTransition] = useTransition()
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   const { order, isVisible, toggleVisible, reorder } = useColumnPrefs('colunas:orcamentos', DEFAULT_ORDER)
 
@@ -88,6 +91,16 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
       .filter((o) => !filtroStatus.length || filtroStatus.includes(o.status))
       .sort((a, b) => b.data_orcamento.localeCompare(a.data_orcamento) || b.numero - a.numero)
   }, [orcamentos, filtroDataInicio, filtroDataFim, filtroCliente, filtroEntidade, filtroStatus])
+
+  useEffect(() => {
+    setPaginaAtual(1)
+  }, [orcamentosFiltrados])
+
+  const totalPaginas = Math.max(1, Math.ceil(orcamentosFiltrados.length / ITENS_POR_PAGINA))
+  const orcamentosPaginados = useMemo(
+    () => orcamentosFiltrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
+    [orcamentosFiltrados, paginaAtual]
+  )
 
   const columns: ColumnManagerColumn[] = [
     { key: 'numero', label: COLUMN_LABELS.numero },
@@ -217,7 +230,7 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
           <div></div>
         </div>
 
-        {orcamentosFiltrados.map((o) => (
+        {orcamentosPaginados.map((o) => (
           <div key={o.id} className="table-row" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
             {visibleOrder.map((key) => cloneElement(renderCell(key, o), { key }))}
             <div className="col-center" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
@@ -239,6 +252,14 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
 
         {orcamentosFiltrados.length === 0 && <div className="empty-state">Nenhum orçamento encontrado.</div>}
       </div>
+
+      <Pagination
+        paginaAtual={paginaAtual}
+        totalPaginas={totalPaginas}
+        totalItens={orcamentosFiltrados.length}
+        itensPorPagina={ITENS_POR_PAGINA}
+        onChange={setPaginaAtual}
+      />
 
       {modalAberto && (
         <Modal title={editando ? 'Editar orçamento' : 'Novo orçamento'} onClose={() => setModalAberto(false)}>

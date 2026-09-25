@@ -1,8 +1,9 @@
 'use client'
 
-import { cloneElement, useMemo, useState } from 'react'
+import { cloneElement, useEffect, useMemo, useState } from 'react'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
 import DespesaForm from './DespesaForm'
 import ImportarDespesa from './ImportarDespesa'
 import { CATEGORIAS_DESPESA, type Despesa, type FormaPagamento } from '@/lib/types/domain'
@@ -28,6 +29,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
 
 const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '70px'
+const ITENS_POR_PAGINA = 15
 
 export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
   const [filtroDataInicio, setFiltroDataInicio] = useState('')
@@ -36,6 +38,7 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
   const [filtroFormaPagamento, setFiltroFormaPagamento] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<Despesa | undefined>(undefined)
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   const { order, isVisible, toggleVisible, reorder } = useColumnPrefs('colunas:despesas', DEFAULT_ORDER)
 
@@ -55,6 +58,16 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
       .filter((d) => !filtroFormaPagamento.length || filtroFormaPagamento.includes(d.forma_pagamento ?? ''))
       .sort((a, b) => b.data.localeCompare(a.data))
   }, [despesas, filtroDataInicio, filtroDataFim, filtroCategoria, filtroFormaPagamento])
+
+  useEffect(() => {
+    setPaginaAtual(1)
+  }, [despesasFiltradas])
+
+  const totalPaginas = Math.max(1, Math.ceil(despesasFiltradas.length / ITENS_POR_PAGINA))
+  const despesasPaginadas = useMemo(
+    () => despesasFiltradas.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
+    [despesasFiltradas, paginaAtual]
+  )
 
   const columns: ColumnManagerColumn[] = [
     {
@@ -134,7 +147,7 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
           ))}
           <div></div>
         </div>
-        {despesasFiltradas.map((d) => (
+        {despesasPaginadas.map((d) => (
           <div key={d.id} className="table-row" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
             {visibleOrder.map((key) => cloneElement(renderCell(key, d), { key }))}
             <div className="col-center">
@@ -146,6 +159,14 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
         ))}
         {despesasFiltradas.length === 0 && <div className="empty-state">Nenhuma despesa encontrada.</div>}
       </div>
+
+      <Pagination
+        paginaAtual={paginaAtual}
+        totalPaginas={totalPaginas}
+        totalItens={despesasFiltradas.length}
+        itensPorPagina={ITENS_POR_PAGINA}
+        onChange={setPaginaAtual}
+      />
 
       {modalAberto && (
         <Modal title={editando ? 'Editar despesa' : 'Nova despesa'} onClose={() => setModalAberto(false)}>

@@ -1,8 +1,9 @@
 'use client'
 
-import { cloneElement, useMemo, useState } from 'react'
+import { cloneElement, useEffect, useMemo, useState } from 'react'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
 import ProdutoForm from './ProdutoForm'
 import { TIPOS_PRODUTO, type Produto } from '@/lib/types/domain'
 import { formatCurrency } from '@/lib/utils/format'
@@ -35,6 +36,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
 
 const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '70px'
+const ITENS_POR_PAGINA = 15
 
 export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
   const [filtroTipo, setFiltroTipo] = useState<string[]>([])
@@ -42,6 +44,7 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
   const [filtroAtivo, setFiltroAtivo] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<Produto | undefined>(undefined)
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   const { order, isVisible, toggleVisible, reorder } = useColumnPrefs('colunas:produtos', DEFAULT_ORDER)
 
@@ -60,6 +63,16 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
       .filter((p) => !filtroAtivo.length || filtroAtivo.includes(p.ativo ? 'S' : 'N'))
       .sort((a, b) => a.nome.localeCompare(b.nome))
   }, [produtos, filtroTipo, filtroCategoria, filtroAtivo])
+
+  useEffect(() => {
+    setPaginaAtual(1)
+  }, [produtosFiltrados])
+
+  const totalPaginas = Math.max(1, Math.ceil(produtosFiltrados.length / ITENS_POR_PAGINA))
+  const produtosPaginados = useMemo(
+    () => produtosFiltrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
+    [produtosFiltrados, paginaAtual]
+  )
 
   const columns: ColumnManagerColumn[] = [
     { key: 'nome', label: COLUMN_LABELS.nome },
@@ -158,7 +171,7 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
           <div></div>
         </div>
 
-        {produtosFiltrados.map((p) => (
+        {produtosPaginados.map((p) => (
           <div key={p.id} className="table-row" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
             {visibleOrder.map((key) => cloneElement(renderCell(key, p), { key }))}
             <div className="col-center" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
@@ -174,6 +187,14 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
 
         {produtosFiltrados.length === 0 && <div className="empty-state">Nenhum produto cadastrado.</div>}
       </div>
+
+      <Pagination
+        paginaAtual={paginaAtual}
+        totalPaginas={totalPaginas}
+        totalItens={produtosFiltrados.length}
+        itensPorPagina={ITENS_POR_PAGINA}
+        onChange={setPaginaAtual}
+      />
 
       {modalAberto && (
         <Modal title={editando ? 'Editar produto' : 'Novo produto'} onClose={() => setModalAberto(false)}>

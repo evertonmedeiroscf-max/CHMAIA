@@ -97,7 +97,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
 
 const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '70px'
-const ITENS_POR_PAGINA = 30
+const ITENS_POR_PAGINA = 15
 
 export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
   const [viewMode, setViewMode] = useState<ViewMode>('lista')

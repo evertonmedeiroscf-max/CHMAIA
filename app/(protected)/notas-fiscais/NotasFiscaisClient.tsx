@@ -1,8 +1,9 @@
 'use client'
 
-import { cloneElement, useMemo, useState } from 'react'
+import { cloneElement, useEffect, useMemo, useState } from 'react'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
 import NotaFiscalForm from './NotaFiscalForm'
 import type { FormaPagamento, NotaFiscalComPedido, Pedido } from '@/lib/types/domain'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
@@ -52,6 +53,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
 
 const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '70px'
+const ITENS_POR_PAGINA = 15
 
 export default function NotasFiscaisClient({
   notas,
@@ -69,6 +71,7 @@ export default function NotasFiscaisClient({
   const [filtroPago, setFiltroPago] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<NotaFiscalComPedido | undefined>(undefined)
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   const { order, isVisible, toggleVisible, reorder } = useColumnPrefs('colunas:notas-fiscais', DEFAULT_ORDER)
 
@@ -107,6 +110,16 @@ export default function NotasFiscaisClient({
     filtroForma,
     filtroPago,
   ])
+
+  useEffect(() => {
+    setPaginaAtual(1)
+  }, [notasFiltradas])
+
+  const totalPaginas = Math.max(1, Math.ceil(notasFiltradas.length / ITENS_POR_PAGINA))
+  const notasPaginadas = useMemo(
+    () => notasFiltradas.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
+    [notasFiltradas, paginaAtual]
+  )
 
   const columns: ColumnManagerColumn[] = [
     { key: 'numero_nota', label: COLUMN_LABELS.numero_nota },
@@ -232,7 +245,7 @@ export default function NotasFiscaisClient({
           <div></div>
         </div>
 
-        {notasFiltradas.map((n) => {
+        {notasPaginadas.map((n) => {
           const vencida = !n.cancelada && !n.pago && !!n.previsao_pagamento && n.previsao_pagamento < hojeISO()
           return (
             <div key={n.id} className={`table-row${vencida ? ' row-alert' : ''}`} style={{ gridTemplateColumns: gridTemplate, minWidth }}>
@@ -248,6 +261,14 @@ export default function NotasFiscaisClient({
 
         {notasFiltradas.length === 0 && <div className="empty-state">Nenhuma nota fiscal encontrada.</div>}
       </div>
+
+      <Pagination
+        paginaAtual={paginaAtual}
+        totalPaginas={totalPaginas}
+        totalItens={notasFiltradas.length}
+        itensPorPagina={ITENS_POR_PAGINA}
+        onChange={setPaginaAtual}
+      />
 
       {modalAberto && (
         <Modal title={editando ? 'Editar nota fiscal' : 'Nova nota fiscal'} onClose={() => setModalAberto(false)}>

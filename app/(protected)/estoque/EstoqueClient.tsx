@@ -1,9 +1,10 @@
 'use client'
 
-import { cloneElement, useMemo, useState } from 'react'
+import { cloneElement, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
 import ItemForm from './ItemForm'
 import MovimentoForm from './MovimentoForm'
 import { CATEGORIAS_ESTOQUE, UNIDADES_MEDIDA, type EstoqueItem } from '@/lib/types/domain'
@@ -44,6 +45,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
 
 const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '120px'
+const ITENS_POR_PAGINA = 15
 
 type ModalState = { type: 'item'; item?: EstoqueItem } | { type: 'movimento'; item: EstoqueItem } | null
 
@@ -51,6 +53,7 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
   const [filtroCategoria, setFiltroCategoria] = useState<string[]>([])
   const [filtroUnidade, setFiltroUnidade] = useState<string[]>([])
   const [modal, setModal] = useState<ModalState>(null)
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   const { order, isVisible, toggleVisible, reorder } = useColumnPrefs('colunas:estoque', DEFAULT_ORDER)
 
@@ -62,11 +65,23 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
     [itens, filtroCategoria, filtroUnidade]
   )
 
-  // Somatório geral do estoque — soma o valor total (custo × quantidade)
-  // dos itens que estão sendo mostrados na tela (respeita os filtros ativos).
+  // Somatório geral do estoque — soma o valor total (custo × quantidade) de
+  // TODOS os itens filtrados, não só os da página atual.
   const totalGeralEstoque = useMemo(
     () => itensFiltrados.reduce((soma, item) => soma + item.valor_total_estoque, 0),
     [itensFiltrados]
+  )
+
+  // Volta pra primeira página sempre que o filtro muda o conjunto de
+  // resultados — sem isso, dava pra ficar "preso" numa página vazia.
+  useEffect(() => {
+    setPaginaAtual(1)
+  }, [itensFiltrados])
+
+  const totalPaginas = Math.max(1, Math.ceil(itensFiltrados.length / ITENS_POR_PAGINA))
+  const itensPaginados = useMemo(
+    () => itensFiltrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
+    [itensFiltrados, paginaAtual]
   )
 
   const columns: ColumnManagerColumn[] = [
@@ -164,7 +179,7 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
           ))}
           <div></div>
         </div>
-        {itensFiltrados.map((item) => {
+        {itensPaginados.map((item) => {
           const isLow = item.quantidade_atual < item.quantidade_minima
           return (
             <div key={item.id} className={`table-row${isLow ? ' row-alert' : ''}`} style={{ gridTemplateColumns: gridTemplate, minWidth }}>
@@ -198,6 +213,14 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
           </div>
         )}
       </div>
+
+      <Pagination
+        paginaAtual={paginaAtual}
+        totalPaginas={totalPaginas}
+        totalItens={itensFiltrados.length}
+        itensPorPagina={ITENS_POR_PAGINA}
+        onChange={setPaginaAtual}
+      />
 
       {modal?.type === 'item' && (
         <Modal title={modal.item ? 'Editar item de estoque' : 'Novo item de estoque'} onClose={fecharModal}>

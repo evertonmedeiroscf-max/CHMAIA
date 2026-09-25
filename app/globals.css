@@ -435,6 +435,30 @@ input[type='password'] {
 
 .table-scroll {
   overflow-x: auto;
+  /* Barra de rolagem grossa e sempre visível, no estilo do Excel — evita
+     depender da barra fina/some-quando-não-usa padrão do navegador, já que
+     essas tabelas costumam ter mais colunas do que cabe na tela. */
+  scrollbar-width: auto;
+  scrollbar-color: oklch(0.72 0.005 80) oklch(0.93 0.004 80);
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 16px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: oklch(0.93 0.004 80);
+  border-top: 1px solid var(--border);
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: oklch(0.72 0.005 80);
+  border: 1px solid oklch(0.6 0.005 80);
+  border-radius: 2px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.64 0.005 80);
 }
 
 .col-center {

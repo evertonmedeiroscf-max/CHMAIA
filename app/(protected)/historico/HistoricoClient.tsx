@@ -1,9 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import DateRangePicker from '@/components/DateRangePicker'
+import Pagination from '@/components/Pagination'
 import type { HistoricoAlteracao } from '@/lib/types/domain'
 import { formatDateBR } from '@/lib/utils/format'
+
+const ITENS_POR_PAGINA = 15
 
 const TABELA_LABEL: Record<string, string> = {
   pedidos: 'Pedido',
@@ -78,6 +81,7 @@ export default function HistoricoClient({ historico }: { historico: HistoricoAlt
   const [filtroUsuario, setFiltroUsuario] = useState('')
   const [filtroTabela, setFiltroTabela] = useState('')
   const [filtroOperacao, setFiltroOperacao] = useState('')
+  const [paginaAtual, setPaginaAtual] = useState(1)
 
   const opcoesUsuario = useMemo(
     () => Array.from(new Set(historico.map((h) => h.usuario_email).filter((v): v is string => !!v))).sort(),
@@ -96,6 +100,16 @@ export default function HistoricoClient({ historico }: { historico: HistoricoAlt
       return true
     })
   }, [historico, filtroDataInicio, filtroDataFim, filtroUsuario, filtroTabela, filtroOperacao])
+
+  useEffect(() => {
+    setPaginaAtual(1)
+  }, [historicoFiltrado])
+
+  const totalPaginas = Math.max(1, Math.ceil(historicoFiltrado.length / ITENS_POR_PAGINA))
+  const historicoPaginado = useMemo(
+    () => historicoFiltrado.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
+    [historicoFiltrado, paginaAtual]
+  )
 
   return (
     <div>
@@ -142,7 +156,7 @@ export default function HistoricoClient({ historico }: { historico: HistoricoAlt
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {historicoFiltrado.map((h) => {
+        {historicoPaginado.map((h) => {
           const diffs = h.operacao === 'update' ? calcularDiff(h.dados_antigos, h.dados_novos) : []
           const resumo = resumoRegistro(h)
           return (
@@ -177,6 +191,14 @@ export default function HistoricoClient({ historico }: { historico: HistoricoAlt
 
         {historicoFiltrado.length === 0 && <div className="empty-state">Nenhuma alteração encontrada.</div>}
       </div>
+
+      <Pagination
+        paginaAtual={paginaAtual}
+        totalPaginas={totalPaginas}
+        totalItens={historicoFiltrado.length}
+        itensPorPagina={ITENS_POR_PAGINA}
+        onChange={setPaginaAtual}
+      />
     </div>
   )
 }
