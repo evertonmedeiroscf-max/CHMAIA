@@ -1,6 +1,7 @@
 'use client'
 
 import { cloneElement, useEffect, useMemo, useState } from 'react'
+import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
@@ -62,12 +63,22 @@ export default function NotasFiscaisClient({
   notas: NotaFiscalComPedido[]
   pedidos: Pedido[]
 }) {
+  const [filtroNumeroNota, setFiltroNumeroNota] = useState<string[]>([])
+  const [filtroPedidoNumero, setFiltroPedidoNumero] = useState<string[]>([])
   const [filtroVendaInicio, setFiltroVendaInicio] = useState('')
   const [filtroVendaFim, setFiltroVendaFim] = useState('')
+  const [filtroValor, setFiltroValor] = useState<string[]>([])
+  const [filtroValorPago, setFiltroValorPago] = useState<string[]>([])
+  const [filtroFaltaPagar, setFiltroFaltaPagar] = useState<string[]>([])
   const [filtroEmissaoInicio, setFiltroEmissaoInicio] = useState('')
   const [filtroEmissaoFim, setFiltroEmissaoFim] = useState('')
+  const [filtroPrevisaoInicio, setFiltroPrevisaoInicio] = useState('')
+  const [filtroPrevisaoFim, setFiltroPrevisaoFim] = useState('')
   const [filtroCliente, setFiltroCliente] = useState<string[]>([])
   const [filtroForma, setFiltroForma] = useState<string[]>([])
+  const [filtroBanco, setFiltroBanco] = useState<string[]>([])
+  const [filtroDataPagamentoInicio, setFiltroDataPagamentoInicio] = useState('')
+  const [filtroDataPagamentoFim, setFiltroDataPagamentoFim] = useState('')
   const [filtroPago, setFiltroPago] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<NotaFiscalComPedido | undefined>(undefined)
@@ -90,24 +101,62 @@ export default function NotasFiscaisClient({
     [notas]
   )
 
+  function opcoesTexto(getter: (n: NotaFiscalComPedido) => string | null) {
+    return Array.from(new Set(notas.map(getter).filter((v): v is string => !!v)))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      .map((v) => ({ value: v, label: v }))
+  }
+  function opcoesNumero(getter: (n: NotaFiscalComPedido) => number | null, formatar: (v: number) => string) {
+    return Array.from(new Set(notas.map(getter).filter((v): v is number => v !== null && v !== undefined)))
+      .sort((a, b) => a - b)
+      .map((v) => ({ value: String(v), label: formatar(v) }))
+  }
+
+  const opcoesNumeroNota = useMemo(() => opcoesTexto((n) => n.numero_nota), [notas])
+  const opcoesPedidoNumero = useMemo(() => opcoesNumero((n) => n.pedido_numero, (v) => String(v)), [notas])
+  const opcoesValor = useMemo(() => opcoesNumero((n) => n.valor, formatCurrency), [notas])
+  const opcoesValorPago = useMemo(() => opcoesNumero((n) => n.valor_pago, formatCurrency), [notas])
+  const opcoesFaltaPagar = useMemo(() => opcoesNumero((n) => n.falta_pagar, formatCurrency), [notas])
+  const opcoesBanco = useMemo(() => opcoesTexto((n) => n.banco), [notas])
+
   const notasFiltradas = useMemo(() => {
     return notas
+      .filter((n) => !filtroNumeroNota.length || filtroNumeroNota.includes(n.numero_nota ?? ''))
+      .filter((n) => !filtroPedidoNumero.length || filtroPedidoNumero.includes(String(n.pedido_numero)))
       .filter((n) => !filtroVendaInicio || n.pedido_data_venda >= filtroVendaInicio)
       .filter((n) => !filtroVendaFim || n.pedido_data_venda <= filtroVendaFim)
+      .filter((n) => !filtroValor.length || filtroValor.includes(String(n.valor)))
+      .filter((n) => !filtroValorPago.length || filtroValorPago.includes(String(n.valor_pago)))
+      .filter((n) => !filtroFaltaPagar.length || filtroFaltaPagar.includes(String(n.falta_pagar)))
       .filter((n) => !filtroEmissaoInicio || (!!n.data_emissao && n.data_emissao >= filtroEmissaoInicio))
       .filter((n) => !filtroEmissaoFim || (!!n.data_emissao && n.data_emissao <= filtroEmissaoFim))
+      .filter((n) => !filtroPrevisaoInicio || (!!n.previsao_pagamento && n.previsao_pagamento >= filtroPrevisaoInicio))
+      .filter((n) => !filtroPrevisaoFim || (!!n.previsao_pagamento && n.previsao_pagamento <= filtroPrevisaoFim))
       .filter((n) => !filtroCliente.length || filtroCliente.includes(n.pedido_cliente))
       .filter((n) => !filtroForma.length || filtroForma.includes(n.forma_pagamento ?? ''))
+      .filter((n) => !filtroBanco.length || filtroBanco.includes(n.banco ?? ''))
+      .filter((n) => !filtroDataPagamentoInicio || (!!n.data_pagamento && n.data_pagamento >= filtroDataPagamentoInicio))
+      .filter((n) => !filtroDataPagamentoFim || (!!n.data_pagamento && n.data_pagamento <= filtroDataPagamentoFim))
       .filter((n) => !filtroPago.length || filtroPago.includes(categoriaNota(n)))
       .sort((a, b) => (b.data_emissao ?? '').localeCompare(a.data_emissao ?? ''))
   }, [
     notas,
+    filtroNumeroNota,
+    filtroPedidoNumero,
     filtroVendaInicio,
     filtroVendaFim,
+    filtroValor,
+    filtroValorPago,
+    filtroFaltaPagar,
     filtroEmissaoInicio,
     filtroEmissaoFim,
+    filtroPrevisaoInicio,
+    filtroPrevisaoFim,
     filtroCliente,
     filtroForma,
+    filtroBanco,
+    filtroDataPagamentoInicio,
+    filtroDataPagamentoFim,
     filtroPago,
   ])
 
@@ -122,23 +171,31 @@ export default function NotasFiscaisClient({
   )
 
   const columns: ColumnManagerColumn[] = [
-    { key: 'numero_nota', label: COLUMN_LABELS.numero_nota },
-    { key: 'pedido_numero', label: COLUMN_LABELS.pedido_numero },
+    { key: 'numero_nota', label: COLUMN_LABELS.numero_nota, filter: { options: opcoesNumeroNota, selected: filtroNumeroNota, onChange: setFiltroNumeroNota } },
+    {
+      key: 'pedido_numero',
+      label: COLUMN_LABELS.pedido_numero,
+      filter: { options: opcoesPedidoNumero, selected: filtroPedidoNumero, onChange: setFiltroPedidoNumero },
+    },
     {
       key: 'pedido_data_venda',
       label: COLUMN_LABELS.pedido_data_venda,
       dateRangeFilter: { from: filtroVendaInicio, to: filtroVendaFim, onChangeFrom: setFiltroVendaInicio, onChangeTo: setFiltroVendaFim },
     },
     { key: 'pedido_cliente', label: COLUMN_LABELS.pedido_cliente, filter: { options: opcoesCliente, selected: filtroCliente, onChange: setFiltroCliente } },
-    { key: 'valor', label: COLUMN_LABELS.valor },
-    { key: 'valor_pago', label: COLUMN_LABELS.valor_pago },
-    { key: 'falta_pagar', label: COLUMN_LABELS.falta_pagar },
+    { key: 'valor', label: COLUMN_LABELS.valor, filter: { options: opcoesValor, selected: filtroValor, onChange: setFiltroValor } },
+    { key: 'valor_pago', label: COLUMN_LABELS.valor_pago, filter: { options: opcoesValorPago, selected: filtroValorPago, onChange: setFiltroValorPago } },
+    { key: 'falta_pagar', label: COLUMN_LABELS.falta_pagar, filter: { options: opcoesFaltaPagar, selected: filtroFaltaPagar, onChange: setFiltroFaltaPagar } },
     {
       key: 'data_emissao',
       label: COLUMN_LABELS.data_emissao,
       dateRangeFilter: { from: filtroEmissaoInicio, to: filtroEmissaoFim, onChangeFrom: setFiltroEmissaoInicio, onChangeTo: setFiltroEmissaoFim },
     },
-    { key: 'previsao_pagamento', label: COLUMN_LABELS.previsao_pagamento },
+    {
+      key: 'previsao_pagamento',
+      label: COLUMN_LABELS.previsao_pagamento,
+      dateRangeFilter: { from: filtroPrevisaoInicio, to: filtroPrevisaoFim, onChangeFrom: setFiltroPrevisaoInicio, onChangeTo: setFiltroPrevisaoFim },
+    },
     {
       key: 'pago',
       label: COLUMN_LABELS.pago,
@@ -153,10 +210,20 @@ export default function NotasFiscaisClient({
       },
     },
     { key: 'forma_pagamento', label: COLUMN_LABELS.forma_pagamento, filter: { options: opcoesForma, selected: filtroForma, onChange: setFiltroForma } },
-    { key: 'banco', label: COLUMN_LABELS.banco },
-    { key: 'data_pagamento', label: COLUMN_LABELS.data_pagamento },
+    { key: 'banco', label: COLUMN_LABELS.banco, filter: { options: opcoesBanco, selected: filtroBanco, onChange: setFiltroBanco } },
+    {
+      key: 'data_pagamento',
+      label: COLUMN_LABELS.data_pagamento,
+      dateRangeFilter: {
+        from: filtroDataPagamentoInicio,
+        to: filtroDataPagamentoFim,
+        onChangeFrom: setFiltroDataPagamentoInicio,
+        onChangeTo: setFiltroDataPagamentoFim,
+      },
+    },
   ]
 
+  const columnsByKey = new Map(columns.map((c) => [c.key, c]))
   const visibleOrder = order.filter(isVisible)
   const gridTemplate = [...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH].join(' ')
   const minWidth = computeRowMinWidth([...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH], 200)
@@ -237,11 +304,15 @@ export default function NotasFiscaisClient({
 
       <div className="data-table table-scroll">
         <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
-          {visibleOrder.map((key) => (
-            <div key={key} className="col-center">
-              {COLUMN_LABELS[key]}
-            </div>
-          ))}
+          {visibleOrder.map((key) => {
+            const col = columnsByKey.get(key)
+            return (
+              <div key={key} className="col-filter">
+                <span>{COLUMN_LABELS[key]}</span>
+                <ColumnHeaderFilter filter={col?.filter} dateRangeFilter={col?.dateRangeFilter} />
+              </div>
+            )
+          })}
           <div></div>
         </div>
 

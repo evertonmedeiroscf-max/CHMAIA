@@ -45,6 +45,7 @@ export const CATEGORIAS_ESTOQUE = [
   'Mercearia',
   'Proteínas',
   'Embalagens',
+  'Produtos Prontos',
 ] as const
 export type CategoriaEstoque = (typeof CATEGORIAS_ESTOQUE)[number]
 

@@ -23,6 +23,9 @@
   --shadow: 0 4px 12px oklch(0.15 0.01 80 / 0.15);
   --backdrop: oklch(0.15 0.01 80 / 0.45);
   --radius: 4px;
+  --abc-a: oklch(0.65 0.15 155);
+  --abc-b: oklch(0.6 0.14 280);
+  --abc-c: oklch(0.68 0.19 15);
 }
 
 * {
@@ -606,11 +609,26 @@ input[type='password'] {
   box-shadow: var(--shadow);
   z-index: 30;
   min-width: 160px;
-  max-height: 220px;
-  overflow: auto;
   padding: 8px;
   font-weight: 400;
   text-align: left;
+}
+
+.col-filter-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: inherit;
+}
+
+.col-filter-list {
+  max-height: 180px;
+  overflow: auto;
 }
 
 .col-filter-option {
@@ -947,6 +965,10 @@ input[type='password'] {
   animation: modalIn 0.15s ease-out;
 }
 
+.modal-panel-wide {
+  width: 1080px;
+}
+
 @keyframes modalIn {
   from {
     opacity: 0;
@@ -1129,5 +1151,212 @@ input[type='password'] {
   .range-picker-pop,
   .col-filter-menu {
     max-width: calc(100vw - 32px);
+  }
+  .modal-panel-wide {
+    width: 100%;
+  }
+}
+
+/* ---------- Curva ABC (análise de estoque) ---------- */
+.abc-kpis {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.abc-kpi {
+  flex: 1;
+  min-width: 160px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.abc-kpi-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.abc-kpi-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.abc-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.abc-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.abc-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+}
+
+.abc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.abc-table th,
+.abc-table td {
+  padding: 5px 4px;
+  text-align: right;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.abc-table th:first-child,
+.abc-table td:first-child {
+  text-align: left;
+}
+
+.abc-table tfoot td {
+  font-weight: 700;
+  border-bottom: none;
+  border-top: 1px solid var(--border-strong);
+}
+
+.abc-tag {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 18px;
+}
+
+.abc-tag-a {
+  background: var(--abc-a);
+}
+
+.abc-tag-b {
+  background: var(--abc-b);
+}
+
+.abc-tag-c {
+  background: var(--abc-c);
+}
+
+.abc-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-bottom: 7px;
+}
+
+.abc-bar-label {
+  width: 92px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.abc-bar-track {
+  flex: 1;
+  background: var(--border-faint);
+  border-radius: 3px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.abc-bar-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+.abc-bar-value {
+  width: 78px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.abc-donut {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  margin: 4px auto 12px;
+  position: relative;
+}
+
+.abc-donut::after {
+  content: '';
+  position: absolute;
+  inset: 20px;
+  background: var(--surface);
+  border-radius: 50%;
+}
+
+.abc-donut-center {
+  position: absolute;
+  inset: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.abc-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.abc-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.abc-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.abc-chart-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 12px 4px;
+}
+
+.abc-chart-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 10px 0 0;
+}
+
+@media (max-width: 860px) {
+  .abc-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }

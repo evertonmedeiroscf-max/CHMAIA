@@ -2,7 +2,9 @@
 
 import { cloneElement, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
+import CurvaABCModal from '@/components/CurvaABCModal'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import ItemForm from './ItemForm'
@@ -47,23 +49,85 @@ const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '120px'
 const ITENS_POR_PAGINA = 15
 
-type ModalState = { type: 'item'; item?: EstoqueItem } | { type: 'movimento'; item: EstoqueItem } | null
+type ModalState = { type: 'item'; item?: EstoqueItem } | { type: 'movimento'; item: EstoqueItem } | { type: 'abc' } | null
 
 export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
+  const [filtroNome, setFiltroNome] = useState<string[]>([])
   const [filtroCategoria, setFiltroCategoria] = useState<string[]>([])
   const [filtroUnidade, setFiltroUnidade] = useState<string[]>([])
+  const [filtroPreco, setFiltroPreco] = useState<string[]>([])
+  const [filtroCusto, setFiltroCusto] = useState<string[]>([])
+  const [filtroDtPrecoInicio, setFiltroDtPrecoInicio] = useState('')
+  const [filtroDtPrecoFim, setFiltroDtPrecoFim] = useState('')
+  const [filtroMarca, setFiltroMarca] = useState<string[]>([])
+  const [filtroMinimo, setFiltroMinimo] = useState<string[]>([])
+  const [filtroAtual, setFiltroAtual] = useState<string[]>([])
+  const [filtroValorTotal, setFiltroValorTotal] = useState<string[]>([])
+  const [filtroDtEstoqueInicio, setFiltroDtEstoqueInicio] = useState('')
+  const [filtroDtEstoqueFim, setFiltroDtEstoqueFim] = useState('')
   const [modal, setModal] = useState<ModalState>(null)
   const [paginaAtual, setPaginaAtual] = useState(1)
 
-  const { order, isVisible, toggleVisible, reorder } = useColumnPrefs('colunas:estoque', DEFAULT_ORDER)
+  // v2: a ordem padrão mudou (Estoque Mínimo agora vem antes de Estoque
+  // Atual) — troquei a chave pra quem já tinha uma ordem salva no
+  // navegador não ficar preso na sequência antiga.
+  const { order, isVisible, toggleVisible, reorder } = useColumnPrefs('colunas:estoque:v2', DEFAULT_ORDER)
 
   const itensFiltrados = useMemo(
     () =>
       itens
+        .filter((item) => !filtroNome.length || filtroNome.includes(item.nome))
         .filter((item) => !filtroCategoria.length || filtroCategoria.includes(item.categoria))
-        .filter((item) => !filtroUnidade.length || filtroUnidade.includes(item.unidade_medida)),
-    [itens, filtroCategoria, filtroUnidade]
+        .filter((item) => !filtroUnidade.length || filtroUnidade.includes(item.unidade_medida))
+        .filter((item) => !filtroPreco.length || filtroPreco.includes(String(item.preco_corrente ?? '')))
+        .filter((item) => !filtroCusto.length || filtroCusto.includes(String(item.custo_unidade ?? '')))
+        .filter((item) => !filtroDtPrecoInicio || (item.data_atualizacao_preco ?? '') >= filtroDtPrecoInicio)
+        .filter((item) => !filtroDtPrecoFim || (!!item.data_atualizacao_preco && item.data_atualizacao_preco <= filtroDtPrecoFim))
+        .filter((item) => !filtroMarca.length || filtroMarca.includes(item.marca_fornecedor ?? ''))
+        .filter((item) => !filtroMinimo.length || filtroMinimo.includes(String(item.quantidade_minima)))
+        .filter((item) => !filtroAtual.length || filtroAtual.includes(String(item.quantidade_atual)))
+        .filter((item) => !filtroValorTotal.length || filtroValorTotal.includes(String(item.valor_total_estoque)))
+        .filter((item) => !filtroDtEstoqueInicio || (item.data_atualizacao_estoque ?? '') >= filtroDtEstoqueInicio)
+        .filter((item) => !filtroDtEstoqueFim || (!!item.data_atualizacao_estoque && item.data_atualizacao_estoque <= filtroDtEstoqueFim)),
+    [
+      itens,
+      filtroNome,
+      filtroCategoria,
+      filtroUnidade,
+      filtroPreco,
+      filtroCusto,
+      filtroDtPrecoInicio,
+      filtroDtPrecoFim,
+      filtroMarca,
+      filtroMinimo,
+      filtroAtual,
+      filtroValorTotal,
+      filtroDtEstoqueInicio,
+      filtroDtEstoqueFim,
+    ]
   )
+
+  // Opções distintas de cada coluna pro checklist de filtro "estilo Excel"
+  // — valores em branco não entram na lista (mesmo padrão já usado nos
+  // filtros de forma de pagamento em Despesas/Pedidos).
+  function opcoesTexto(getter: (item: EstoqueItem) => string | null) {
+    return Array.from(new Set(itens.map(getter).filter((v): v is string => !!v)))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      .map((v) => ({ value: v, label: v }))
+  }
+  function opcoesNumero(getter: (item: EstoqueItem) => number | null, formatar: (v: number) => string) {
+    return Array.from(new Set(itens.map(getter).filter((v): v is number => v !== null && v !== undefined)))
+      .sort((a, b) => a - b)
+      .map((v) => ({ value: String(v), label: formatar(v) }))
+  }
+
+  const opcoesNome = useMemo(() => opcoesTexto((i) => i.nome), [itens])
+  const opcoesPreco = useMemo(() => opcoesNumero((i) => i.preco_corrente, formatCurrency), [itens])
+  const opcoesCusto = useMemo(() => opcoesNumero((i) => i.custo_unidade, formatCurrency), [itens])
+  const opcoesMarca = useMemo(() => opcoesTexto((i) => i.marca_fornecedor), [itens])
+  const opcoesMinimo = useMemo(() => opcoesNumero((i) => i.quantidade_minima, (v) => String(v)), [itens])
+  const opcoesAtual = useMemo(() => opcoesNumero((i) => i.quantidade_atual, (v) => String(v)), [itens])
+  const opcoesValorTotal = useMemo(() => opcoesNumero((i) => i.valor_total_estoque, formatCurrency), [itens])
 
   // Somatório geral do estoque — soma o valor total (custo × quantidade) de
   // TODOS os itens filtrados, não só os da página atual.
@@ -85,7 +149,7 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
   )
 
   const columns: ColumnManagerColumn[] = [
-    { key: 'nome', label: COLUMN_LABELS.nome },
+    { key: 'nome', label: COLUMN_LABELS.nome, filter: { options: opcoesNome, selected: filtroNome, onChange: setFiltroNome } },
     {
       key: 'categoria',
       label: COLUMN_LABELS.categoria,
@@ -96,16 +160,29 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
       label: COLUMN_LABELS.unidade_medida,
       filter: { options: UNIDADES_MEDIDA.map((u) => ({ value: u, label: u })), selected: filtroUnidade, onChange: setFiltroUnidade },
     },
-    { key: 'preco_corrente', label: COLUMN_LABELS.preco_corrente },
-    { key: 'custo_unidade', label: COLUMN_LABELS.custo_unidade },
-    { key: 'data_atualizacao_preco', label: COLUMN_LABELS.data_atualizacao_preco },
-    { key: 'marca_fornecedor', label: COLUMN_LABELS.marca_fornecedor },
-    { key: 'quantidade_minima', label: COLUMN_LABELS.quantidade_minima },
-    { key: 'quantidade_atual', label: COLUMN_LABELS.quantidade_atual },
-    { key: 'valor_total_estoque', label: COLUMN_LABELS.valor_total_estoque },
-    { key: 'data_atualizacao_estoque', label: COLUMN_LABELS.data_atualizacao_estoque },
+    { key: 'preco_corrente', label: COLUMN_LABELS.preco_corrente, filter: { options: opcoesPreco, selected: filtroPreco, onChange: setFiltroPreco } },
+    { key: 'custo_unidade', label: COLUMN_LABELS.custo_unidade, filter: { options: opcoesCusto, selected: filtroCusto, onChange: setFiltroCusto } },
+    {
+      key: 'data_atualizacao_preco',
+      label: COLUMN_LABELS.data_atualizacao_preco,
+      dateRangeFilter: { from: filtroDtPrecoInicio, to: filtroDtPrecoFim, onChangeFrom: setFiltroDtPrecoInicio, onChangeTo: setFiltroDtPrecoFim },
+    },
+    { key: 'marca_fornecedor', label: COLUMN_LABELS.marca_fornecedor, filter: { options: opcoesMarca, selected: filtroMarca, onChange: setFiltroMarca } },
+    { key: 'quantidade_minima', label: COLUMN_LABELS.quantidade_minima, filter: { options: opcoesMinimo, selected: filtroMinimo, onChange: setFiltroMinimo } },
+    { key: 'quantidade_atual', label: COLUMN_LABELS.quantidade_atual, filter: { options: opcoesAtual, selected: filtroAtual, onChange: setFiltroAtual } },
+    {
+      key: 'valor_total_estoque',
+      label: COLUMN_LABELS.valor_total_estoque,
+      filter: { options: opcoesValorTotal, selected: filtroValorTotal, onChange: setFiltroValorTotal },
+    },
+    {
+      key: 'data_atualizacao_estoque',
+      label: COLUMN_LABELS.data_atualizacao_estoque,
+      dateRangeFilter: { from: filtroDtEstoqueInicio, to: filtroDtEstoqueFim, onChangeFrom: setFiltroDtEstoqueInicio, onChangeTo: setFiltroDtEstoqueFim },
+    },
   ]
 
+  const columnsByKey = new Map(columns.map((c) => [c.key, c]))
   const visibleOrder = order.filter(isVisible)
   const gridTemplate = [...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH].join(' ')
   const minWidth = computeRowMinWidth([...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH])
@@ -167,16 +244,27 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
       </div>
 
       <div className="toolbar" style={{ justifyContent: 'flex-end' }}>
+        <button type="button" className="btn-secondary" onClick={() => setModal({ type: 'abc' })}>
+          Curva ABC
+        </button>
         <ColumnManagerPanel columns={columns} order={order} isVisible={isVisible} onToggleVisible={toggleVisible} onReorder={reorder} />
       </div>
 
       <div className="data-table table-scroll">
         <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
-          {visibleOrder.map((key) => (
-            <div key={key} className={key === 'nome' ? undefined : 'col-center'}>
-              {COLUMN_LABELS[key]}
-            </div>
-          ))}
+          {visibleOrder.map((key) => {
+            const col = columnsByKey.get(key)
+            return (
+              <div
+                key={key}
+                className="col-filter"
+                style={{ justifyContent: key === 'nome' ? 'flex-start' : 'center' }}
+              >
+                <span>{COLUMN_LABELS[key]}</span>
+                <ColumnHeaderFilter filter={col?.filter} dateRangeFilter={col?.dateRangeFilter} />
+              </div>
+            )
+          })}
           <div></div>
         </div>
         {itensPaginados.map((item) => {
@@ -231,6 +319,12 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
       {modal?.type === 'movimento' && (
         <Modal title="Registrar movimento" onClose={fecharModal}>
           <MovimentoForm key={modal.item.id} item={modal.item} onClose={fecharModal} />
+        </Modal>
+      )}
+
+      {modal?.type === 'abc' && (
+        <Modal title="Análise ABC do estoque" onClose={fecharModal} wide>
+          <CurvaABCModal itens={itens} />
         </Modal>
       )}
     </div>

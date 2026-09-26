@@ -1,6 +1,7 @@
 'use client'
 
 import { cloneElement, useEffect, useMemo, useState } from 'react'
+import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
@@ -101,12 +102,22 @@ const ITENS_POR_PAGINA = 15
 
 export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
   const [viewMode, setViewMode] = useState<ViewMode>('lista')
+  const [filtroNumero, setFiltroNumero] = useState<string[]>([])
   const [filtroDataInicio, setFiltroDataInicio] = useState('')
   const [filtroDataFim, setFiltroDataFim] = useState('')
+  const [filtroDataEventoInicio, setFiltroDataEventoInicio] = useState('')
+  const [filtroDataEventoFim, setFiltroDataEventoFim] = useState('')
+  const [filtroHoraEvento, setFiltroHoraEvento] = useState<string[]>([])
   const [filtroCliente, setFiltroCliente] = useState<string[]>([])
+  const [filtroValorTotal, setFiltroValorTotal] = useState<string[]>([])
+  const [filtroValorPago, setFiltroValorPago] = useState<string[]>([])
+  const [filtroFaltaPagar, setFiltroFaltaPagar] = useState<string[]>([])
   const [filtroNota, setFiltroNota] = useState<string[]>([])
   const [filtroEntidade, setFiltroEntidade] = useState<string[]>([])
   const [filtroFormaPagamento, setFiltroFormaPagamento] = useState<string[]>([])
+  const [filtroBanco, setFiltroBanco] = useState<string[]>([])
+  const [filtroDataPagamentoInicio, setFiltroDataPagamentoInicio] = useState('')
+  const [filtroDataPagamentoFim, setFiltroDataPagamentoFim] = useState('')
   const [filtroStatus, setFiltroStatus] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<Pedido | undefined>(undefined)
@@ -123,18 +134,65 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
   )
   const opcoesFormaPagamento = CATEGORIAS_PAGAMENTO.map((c) => ({ value: c, label: c }))
 
+  function opcoesTexto(getter: (p: Pedido) => string | null) {
+    return Array.from(new Set(pedidos.map(getter).filter((v): v is string => !!v)))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      .map((v) => ({ value: v, label: v }))
+  }
+  function opcoesNumero(getter: (p: Pedido) => number | null, formatar: (v: number) => string) {
+    return Array.from(new Set(pedidos.map(getter).filter((v): v is number => v !== null && v !== undefined)))
+      .sort((a, b) => a - b)
+      .map((v) => ({ value: String(v), label: formatar(v) }))
+  }
+
+  const opcoesNumeroPedido = useMemo(() => opcoesNumero((p) => p.numero, (v) => String(v)), [pedidos])
+  const opcoesHoraEvento = useMemo(() => opcoesTexto((p) => (p.hora_evento ? p.hora_evento.slice(0, 5) : null)), [pedidos])
+  const opcoesValorTotal = useMemo(() => opcoesNumero((p) => p.valor_total, formatCurrency), [pedidos])
+  const opcoesValorPago = useMemo(() => opcoesNumero((p) => p.valor_pago, formatCurrency), [pedidos])
+  const opcoesFaltaPagar = useMemo(() => opcoesNumero((p) => p.falta_pagar, formatCurrency), [pedidos])
+  const opcoesBanco = useMemo(() => opcoesTexto((p) => p.banco), [pedidos])
+
   const pedidosFiltrados = useMemo(() => {
     return pedidos.filter((p) => {
+      if (filtroNumero.length && !filtroNumero.includes(String(p.numero))) return false
       if (filtroDataInicio && p.data_venda < filtroDataInicio) return false
       if (filtroDataFim && p.data_venda > filtroDataFim) return false
+      if (filtroDataEventoInicio && (p.data_evento ?? '') < filtroDataEventoInicio) return false
+      if (filtroDataEventoFim && !(p.data_evento && p.data_evento <= filtroDataEventoFim)) return false
+      if (filtroHoraEvento.length && !filtroHoraEvento.includes(p.hora_evento ? p.hora_evento.slice(0, 5) : '')) return false
       if (filtroCliente.length && !filtroCliente.includes(p.cliente)) return false
+      if (filtroValorTotal.length && !filtroValorTotal.includes(String(p.valor_total))) return false
+      if (filtroValorPago.length && !filtroValorPago.includes(String(p.valor_pago))) return false
+      if (filtroFaltaPagar.length && !filtroFaltaPagar.includes(String(p.falta_pagar))) return false
       if (filtroNota.length && !filtroNota.includes(p.emissao_nota ? 'S' : 'N')) return false
       if (filtroEntidade.length && !filtroEntidade.includes(p.entidade)) return false
       if (filtroFormaPagamento.length && !filtroFormaPagamento.includes(categoriaPagamento(p.forma_pagamento))) return false
+      if (filtroBanco.length && !filtroBanco.includes(p.banco ?? '')) return false
+      if (filtroDataPagamentoInicio && !(p.data_pagamento && p.data_pagamento >= filtroDataPagamentoInicio)) return false
+      if (filtroDataPagamentoFim && !(p.data_pagamento && p.data_pagamento <= filtroDataPagamentoFim)) return false
       if (filtroStatus.length && !filtroStatus.includes(p.status)) return false
       return true
     })
-  }, [pedidos, filtroDataInicio, filtroDataFim, filtroCliente, filtroNota, filtroEntidade, filtroFormaPagamento, filtroStatus])
+  }, [
+    pedidos,
+    filtroNumero,
+    filtroDataInicio,
+    filtroDataFim,
+    filtroDataEventoInicio,
+    filtroDataEventoFim,
+    filtroHoraEvento,
+    filtroCliente,
+    filtroValorTotal,
+    filtroValorPago,
+    filtroFaltaPagar,
+    filtroNota,
+    filtroEntidade,
+    filtroFormaPagamento,
+    filtroBanco,
+    filtroDataPagamentoInicio,
+    filtroDataPagamentoFim,
+    filtroStatus,
+  ])
 
   // Volta pra primeira página sempre que o filtro muda o conjunto de
   // resultados — sem isso, dava pra ficar "preso" numa página vazia.
@@ -149,18 +207,27 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
   )
 
   const columns: ColumnManagerColumn[] = [
-    { key: 'numero', label: COLUMN_LABELS.numero },
+    { key: 'numero', label: COLUMN_LABELS.numero, filter: { options: opcoesNumeroPedido, selected: filtroNumero, onChange: setFiltroNumero } },
     {
       key: 'data_venda',
       label: COLUMN_LABELS.data_venda,
       dateRangeFilter: { from: filtroDataInicio, to: filtroDataFim, onChangeFrom: setFiltroDataInicio, onChangeTo: setFiltroDataFim },
     },
-    { key: 'data_evento', label: COLUMN_LABELS.data_evento },
-    { key: 'hora_evento', label: COLUMN_LABELS.hora_evento },
+    {
+      key: 'data_evento',
+      label: COLUMN_LABELS.data_evento,
+      dateRangeFilter: {
+        from: filtroDataEventoInicio,
+        to: filtroDataEventoFim,
+        onChangeFrom: setFiltroDataEventoInicio,
+        onChangeTo: setFiltroDataEventoFim,
+      },
+    },
+    { key: 'hora_evento', label: COLUMN_LABELS.hora_evento, filter: { options: opcoesHoraEvento, selected: filtroHoraEvento, onChange: setFiltroHoraEvento } },
     { key: 'cliente', label: COLUMN_LABELS.cliente, filter: { options: opcoesCliente, selected: filtroCliente, onChange: setFiltroCliente } },
-    { key: 'valor_total', label: COLUMN_LABELS.valor_total },
-    { key: 'valor_pago', label: COLUMN_LABELS.valor_pago },
-    { key: 'falta_pagar', label: COLUMN_LABELS.falta_pagar },
+    { key: 'valor_total', label: COLUMN_LABELS.valor_total, filter: { options: opcoesValorTotal, selected: filtroValorTotal, onChange: setFiltroValorTotal } },
+    { key: 'valor_pago', label: COLUMN_LABELS.valor_pago, filter: { options: opcoesValorPago, selected: filtroValorPago, onChange: setFiltroValorPago } },
+    { key: 'falta_pagar', label: COLUMN_LABELS.falta_pagar, filter: { options: opcoesFaltaPagar, selected: filtroFaltaPagar, onChange: setFiltroFaltaPagar } },
     {
       key: 'emissao_nota',
       label: COLUMN_LABELS.emissao_nota,
@@ -183,8 +250,17 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
       label: COLUMN_LABELS.forma_pagamento,
       filter: { options: opcoesFormaPagamento, selected: filtroFormaPagamento, onChange: setFiltroFormaPagamento },
     },
-    { key: 'banco', label: COLUMN_LABELS.banco },
-    { key: 'data_pagamento', label: COLUMN_LABELS.data_pagamento },
+    { key: 'banco', label: COLUMN_LABELS.banco, filter: { options: opcoesBanco, selected: filtroBanco, onChange: setFiltroBanco } },
+    {
+      key: 'data_pagamento',
+      label: COLUMN_LABELS.data_pagamento,
+      dateRangeFilter: {
+        from: filtroDataPagamentoInicio,
+        to: filtroDataPagamentoFim,
+        onChangeFrom: setFiltroDataPagamentoInicio,
+        onChangeTo: setFiltroDataPagamentoFim,
+      },
+    },
     {
       key: 'status',
       label: COLUMN_LABELS.status,
@@ -196,6 +272,7 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
     },
   ]
 
+  const columnsByKey = new Map(columns.map((c) => [c.key, c]))
   const visibleOrder = order.filter(isVisible)
   const gridTemplate = [...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH].join(' ')
   const minWidth = computeRowMinWidth([...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH])
@@ -330,11 +407,15 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
 
           <div className="data-table table-scroll">
             <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
-              {visibleOrder.map((key) => (
-                <div key={key} className="col-center">
-                  {COLUMN_LABELS[key]}
-                </div>
-              ))}
+              {visibleOrder.map((key) => {
+                const col = columnsByKey.get(key)
+                return (
+                  <div key={key} className="col-filter">
+                    <span>{COLUMN_LABELS[key]}</span>
+                    <ColumnHeaderFilter filter={col?.filter} dateRangeFilter={col?.dateRangeFilter} />
+                  </div>
+                )
+              })}
               <div></div>
             </div>
 

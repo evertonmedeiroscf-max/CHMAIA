@@ -1,6 +1,7 @@
 'use client'
 
 import { cloneElement, useEffect, useMemo, useState, useTransition } from 'react'
+import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
@@ -60,10 +61,20 @@ const ACAO_WIDTH = '150px'
 const ITENS_POR_PAGINA = 15
 
 export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos: Orcamento[]; produtos: Produto[] }) {
+  const [filtroNumero, setFiltroNumero] = useState<string[]>([])
   const [filtroDataInicio, setFiltroDataInicio] = useState('')
   const [filtroDataFim, setFiltroDataFim] = useState('')
   const [filtroCliente, setFiltroCliente] = useState<string[]>([])
   const [filtroEntidade, setFiltroEntidade] = useState<string[]>([])
+  const [filtroDataEventoInicio, setFiltroDataEventoInicio] = useState('')
+  const [filtroDataEventoFim, setFiltroDataEventoFim] = useState('')
+  const [filtroHoraEvento, setFiltroHoraEvento] = useState<string[]>([])
+  const [filtroDescricao, setFiltroDescricao] = useState<string[]>([])
+  const [filtroNumeroPessoas, setFiltroNumeroPessoas] = useState<string[]>([])
+  const [filtroValorTotal, setFiltroValorTotal] = useState<string[]>([])
+  const [filtroValorPorPessoa, setFiltroValorPorPessoa] = useState<string[]>([])
+  const [filtroValidadeInicio, setFiltroValidadeInicio] = useState('')
+  const [filtroValidadeFim, setFiltroValidadeFim] = useState('')
   const [filtroStatus, setFiltroStatus] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<Orcamento | undefined>(undefined)
@@ -82,15 +93,67 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
     [orcamentos]
   )
 
+  function opcoesTexto(getter: (o: Orcamento) => string | null) {
+    return Array.from(new Set(orcamentos.map(getter).filter((v): v is string => !!v)))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      .map((v) => ({ value: v, label: v }))
+  }
+  function opcoesNumero(getter: (o: Orcamento) => number | null, formatar: (v: number) => string) {
+    return Array.from(new Set(orcamentos.map(getter).filter((v): v is number => v !== null && v !== undefined)))
+      .sort((a, b) => a - b)
+      .map((v) => ({ value: String(v), label: formatar(v) }))
+  }
+
+  const opcoesNumeroOrcamento = useMemo(() => opcoesNumero((o) => o.numero, (v) => String(v)), [orcamentos])
+  const opcoesHoraEvento = useMemo(() => opcoesTexto((o) => (o.hora_evento ? o.hora_evento.slice(0, 5) : null)), [orcamentos])
+  const opcoesDescricao = useMemo(() => opcoesTexto((o) => o.descricao), [orcamentos])
+  const opcoesNumeroPessoas = useMemo(() => opcoesNumero((o) => o.numero_pessoas, (v) => String(v)), [orcamentos])
+  const opcoesValorTotal = useMemo(() => opcoesNumero((o) => o.valor_total, formatCurrency), [orcamentos])
+  const opcoesValorPorPessoa = useMemo(
+    () => opcoesNumero((o) => (o.numero_pessoas ? o.valor_total / o.numero_pessoas : null), formatCurrency),
+    [orcamentos]
+  )
+
   const orcamentosFiltrados = useMemo(() => {
     return orcamentos
+      .filter((o) => !filtroNumero.length || filtroNumero.includes(String(o.numero)))
       .filter((o) => !filtroDataInicio || o.data_orcamento >= filtroDataInicio)
       .filter((o) => !filtroDataFim || o.data_orcamento <= filtroDataFim)
       .filter((o) => !filtroCliente.length || filtroCliente.includes(o.cliente))
       .filter((o) => !filtroEntidade.length || filtroEntidade.includes(o.entidade))
+      .filter((o) => !filtroDataEventoInicio || (!!o.data_evento && o.data_evento >= filtroDataEventoInicio))
+      .filter((o) => !filtroDataEventoFim || (!!o.data_evento && o.data_evento <= filtroDataEventoFim))
+      .filter((o) => !filtroHoraEvento.length || filtroHoraEvento.includes(o.hora_evento ? o.hora_evento.slice(0, 5) : ''))
+      .filter((o) => !filtroDescricao.length || filtroDescricao.includes(o.descricao ?? ''))
+      .filter((o) => !filtroNumeroPessoas.length || filtroNumeroPessoas.includes(String(o.numero_pessoas ?? '')))
+      .filter((o) => !filtroValorTotal.length || filtroValorTotal.includes(String(o.valor_total)))
+      .filter(
+        (o) =>
+          !filtroValorPorPessoa.length ||
+          filtroValorPorPessoa.includes(String(o.numero_pessoas ? o.valor_total / o.numero_pessoas : ''))
+      )
+      .filter((o) => !filtroValidadeInicio || (!!o.validade && o.validade >= filtroValidadeInicio))
+      .filter((o) => !filtroValidadeFim || (!!o.validade && o.validade <= filtroValidadeFim))
       .filter((o) => !filtroStatus.length || filtroStatus.includes(o.status))
       .sort((a, b) => b.data_orcamento.localeCompare(a.data_orcamento) || b.numero - a.numero)
-  }, [orcamentos, filtroDataInicio, filtroDataFim, filtroCliente, filtroEntidade, filtroStatus])
+  }, [
+    orcamentos,
+    filtroNumero,
+    filtroDataInicio,
+    filtroDataFim,
+    filtroCliente,
+    filtroEntidade,
+    filtroDataEventoInicio,
+    filtroDataEventoFim,
+    filtroHoraEvento,
+    filtroDescricao,
+    filtroNumeroPessoas,
+    filtroValorTotal,
+    filtroValorPorPessoa,
+    filtroValidadeInicio,
+    filtroValidadeFim,
+    filtroStatus,
+  ])
 
   useEffect(() => {
     setPaginaAtual(1)
@@ -103,7 +166,7 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
   )
 
   const columns: ColumnManagerColumn[] = [
-    { key: 'numero', label: COLUMN_LABELS.numero },
+    { key: 'numero', label: COLUMN_LABELS.numero, filter: { options: opcoesNumeroOrcamento, selected: filtroNumero, onChange: setFiltroNumero } },
     {
       key: 'data_orcamento',
       label: COLUMN_LABELS.data_orcamento,
@@ -115,13 +178,34 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
       label: COLUMN_LABELS.entidade,
       filter: { options: ENTIDADE_TIPOS.map((t) => ({ value: t, label: t })), selected: filtroEntidade, onChange: setFiltroEntidade },
     },
-    { key: 'data_evento', label: COLUMN_LABELS.data_evento },
-    { key: 'hora_evento', label: COLUMN_LABELS.hora_evento },
-    { key: 'descricao', label: COLUMN_LABELS.descricao },
-    { key: 'numero_pessoas', label: COLUMN_LABELS.numero_pessoas },
-    { key: 'valor_total', label: COLUMN_LABELS.valor_total },
-    { key: 'valor_por_pessoa', label: COLUMN_LABELS.valor_por_pessoa },
-    { key: 'validade', label: COLUMN_LABELS.validade },
+    {
+      key: 'data_evento',
+      label: COLUMN_LABELS.data_evento,
+      dateRangeFilter: {
+        from: filtroDataEventoInicio,
+        to: filtroDataEventoFim,
+        onChangeFrom: setFiltroDataEventoInicio,
+        onChangeTo: setFiltroDataEventoFim,
+      },
+    },
+    { key: 'hora_evento', label: COLUMN_LABELS.hora_evento, filter: { options: opcoesHoraEvento, selected: filtroHoraEvento, onChange: setFiltroHoraEvento } },
+    { key: 'descricao', label: COLUMN_LABELS.descricao, filter: { options: opcoesDescricao, selected: filtroDescricao, onChange: setFiltroDescricao } },
+    {
+      key: 'numero_pessoas',
+      label: COLUMN_LABELS.numero_pessoas,
+      filter: { options: opcoesNumeroPessoas, selected: filtroNumeroPessoas, onChange: setFiltroNumeroPessoas },
+    },
+    { key: 'valor_total', label: COLUMN_LABELS.valor_total, filter: { options: opcoesValorTotal, selected: filtroValorTotal, onChange: setFiltroValorTotal } },
+    {
+      key: 'valor_por_pessoa',
+      label: COLUMN_LABELS.valor_por_pessoa,
+      filter: { options: opcoesValorPorPessoa, selected: filtroValorPorPessoa, onChange: setFiltroValorPorPessoa },
+    },
+    {
+      key: 'validade',
+      label: COLUMN_LABELS.validade,
+      dateRangeFilter: { from: filtroValidadeInicio, to: filtroValidadeFim, onChangeFrom: setFiltroValidadeInicio, onChangeTo: setFiltroValidadeFim },
+    },
     {
       key: 'status',
       label: COLUMN_LABELS.status,
@@ -133,6 +217,7 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
     },
   ]
 
+  const columnsByKey = new Map(columns.map((c) => [c.key, c]))
   const visibleOrder = order.filter(isVisible)
   const gridTemplate = [...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH].join(' ')
   const minWidth = computeRowMinWidth([...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH])
@@ -222,11 +307,15 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
 
       <div className="data-table table-scroll">
         <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
-          {visibleOrder.map((key) => (
-            <div key={key} className={key === 'descricao' ? undefined : 'col-center'}>
-              {COLUMN_LABELS[key]}
-            </div>
-          ))}
+          {visibleOrder.map((key) => {
+            const col = columnsByKey.get(key)
+            return (
+              <div key={key} className="col-filter" style={{ justifyContent: key === 'descricao' ? 'flex-start' : 'center' }}>
+                <span>{COLUMN_LABELS[key]}</span>
+                <ColumnHeaderFilter filter={col?.filter} dateRangeFilter={col?.dateRangeFilter} />
+              </div>
+            )
+          })}
           <div></div>
         </div>
 

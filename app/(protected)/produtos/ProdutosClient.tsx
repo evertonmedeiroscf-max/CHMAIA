@@ -1,6 +1,7 @@
 'use client'
 
 import { cloneElement, useEffect, useMemo, useState } from 'react'
+import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
@@ -39,8 +40,11 @@ const ACAO_WIDTH = '70px'
 const ITENS_POR_PAGINA = 15
 
 export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
+  const [filtroNome, setFiltroNome] = useState<string[]>([])
   const [filtroTipo, setFiltroTipo] = useState<string[]>([])
   const [filtroCategoria, setFiltroCategoria] = useState<string[]>([])
+  const [filtroPeso, setFiltroPeso] = useState<string[]>([])
+  const [filtroValorUnit, setFiltroValorUnit] = useState<string[]>([])
   const [filtroAtivo, setFiltroAtivo] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<Produto | undefined>(undefined)
@@ -56,13 +60,38 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
     [produtos]
   )
 
+  const opcoesNome = useMemo(
+    () =>
+      Array.from(new Set(produtos.map((p) => p.nome).filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+        .map((v) => ({ value: v, label: v })),
+    [produtos]
+  )
+  const opcoesPeso = useMemo(
+    () =>
+      Array.from(new Set(produtos.map((p) => p.peso_kg_padrao).filter((v): v is number => v !== null && v !== undefined)))
+        .sort((a, b) => a - b)
+        .map((v) => ({ value: String(v), label: String(v) })),
+    [produtos]
+  )
+  const opcoesValorUnit = useMemo(
+    () =>
+      Array.from(new Set(produtos.map((p) => p.valor_unit_padrao)))
+        .sort((a, b) => a - b)
+        .map((v) => ({ value: String(v), label: formatCurrency(v) })),
+    [produtos]
+  )
+
   const produtosFiltrados = useMemo(() => {
     return produtos
+      .filter((p) => !filtroNome.length || filtroNome.includes(p.nome))
       .filter((p) => !filtroTipo.length || filtroTipo.includes(p.tipo))
       .filter((p) => !filtroCategoria.length || filtroCategoria.includes(p.categoria ?? ''))
+      .filter((p) => !filtroPeso.length || filtroPeso.includes(String(p.peso_kg_padrao)))
+      .filter((p) => !filtroValorUnit.length || filtroValorUnit.includes(String(p.valor_unit_padrao)))
       .filter((p) => !filtroAtivo.length || filtroAtivo.includes(p.ativo ? 'S' : 'N'))
       .sort((a, b) => a.nome.localeCompare(b.nome))
-  }, [produtos, filtroTipo, filtroCategoria, filtroAtivo])
+  }, [produtos, filtroNome, filtroTipo, filtroCategoria, filtroPeso, filtroValorUnit, filtroAtivo])
 
   useEffect(() => {
     setPaginaAtual(1)
@@ -75,7 +104,7 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
   )
 
   const columns: ColumnManagerColumn[] = [
-    { key: 'nome', label: COLUMN_LABELS.nome },
+    { key: 'nome', label: COLUMN_LABELS.nome, filter: { options: opcoesNome, selected: filtroNome, onChange: setFiltroNome } },
     {
       key: 'tipo',
       label: COLUMN_LABELS.tipo,
@@ -86,8 +115,12 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
       label: COLUMN_LABELS.categoria,
       filter: { options: opcoesCategoria, selected: filtroCategoria, onChange: setFiltroCategoria },
     },
-    { key: 'peso_kg_padrao', label: COLUMN_LABELS.peso_kg_padrao },
-    { key: 'valor_unit_padrao', label: COLUMN_LABELS.valor_unit_padrao },
+    { key: 'peso_kg_padrao', label: COLUMN_LABELS.peso_kg_padrao, filter: { options: opcoesPeso, selected: filtroPeso, onChange: setFiltroPeso } },
+    {
+      key: 'valor_unit_padrao',
+      label: COLUMN_LABELS.valor_unit_padrao,
+      filter: { options: opcoesValorUnit, selected: filtroValorUnit, onChange: setFiltroValorUnit },
+    },
     {
       key: 'ativo',
       label: COLUMN_LABELS.ativo,
@@ -102,6 +135,7 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
     },
   ]
 
+  const columnsByKey = new Map(columns.map((c) => [c.key, c]))
   const visibleOrder = order.filter(isVisible)
   const gridTemplate = [...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH].join(' ')
   const minWidth = computeRowMinWidth([...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH])
@@ -163,11 +197,15 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
 
       <div className="data-table table-scroll">
         <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
-          {visibleOrder.map((key) => (
-            <div key={key} className={key === 'nome' ? undefined : 'col-center'}>
-              {COLUMN_LABELS[key]}
-            </div>
-          ))}
+          {visibleOrder.map((key) => {
+            const col = columnsByKey.get(key)
+            return (
+              <div key={key} className="col-filter" style={{ justifyContent: key === 'nome' ? 'flex-start' : 'center' }}>
+                <span>{COLUMN_LABELS[key]}</span>
+                <ColumnHeaderFilter filter={col?.filter} dateRangeFilter={col?.dateRangeFilter} />
+              </div>
+            )
+          })}
           <div></div>
         </div>
 

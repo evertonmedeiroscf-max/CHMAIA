@@ -1,6 +1,7 @@
 'use client'
 
 import { cloneElement, useEffect, useMemo, useState } from 'react'
+import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
@@ -34,8 +35,10 @@ const ITENS_POR_PAGINA = 15
 export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
   const [filtroDataInicio, setFiltroDataInicio] = useState('')
   const [filtroDataFim, setFiltroDataFim] = useState('')
+  const [filtroDescricao, setFiltroDescricao] = useState<string[]>([])
   const [filtroCategoria, setFiltroCategoria] = useState<string[]>([])
   const [filtroFormaPagamento, setFiltroFormaPagamento] = useState<string[]>([])
+  const [filtroValor, setFiltroValor] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<Despesa | undefined>(undefined)
   const [paginaAtual, setPaginaAtual] = useState(1)
@@ -50,14 +53,31 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
     [despesas]
   )
 
+  const opcoesDescricao = useMemo(
+    () =>
+      Array.from(new Set(despesas.map((d) => d.descricao).filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+        .map((v) => ({ value: v, label: v })),
+    [despesas]
+  )
+  const opcoesValor = useMemo(
+    () =>
+      Array.from(new Set(despesas.map((d) => d.valor)))
+        .sort((a, b) => a - b)
+        .map((v) => ({ value: String(v), label: formatCurrency(v) })),
+    [despesas]
+  )
+
   const despesasFiltradas = useMemo(() => {
     return despesas
       .filter((d) => !filtroDataInicio || d.data >= filtroDataInicio)
       .filter((d) => !filtroDataFim || d.data <= filtroDataFim)
+      .filter((d) => !filtroDescricao.length || filtroDescricao.includes(d.descricao))
       .filter((d) => !filtroCategoria.length || filtroCategoria.includes(d.categoria))
       .filter((d) => !filtroFormaPagamento.length || filtroFormaPagamento.includes(d.forma_pagamento ?? ''))
+      .filter((d) => !filtroValor.length || filtroValor.includes(String(d.valor)))
       .sort((a, b) => b.data.localeCompare(a.data))
-  }, [despesas, filtroDataInicio, filtroDataFim, filtroCategoria, filtroFormaPagamento])
+  }, [despesas, filtroDataInicio, filtroDataFim, filtroDescricao, filtroCategoria, filtroFormaPagamento, filtroValor])
 
   useEffect(() => {
     setPaginaAtual(1)
@@ -75,7 +95,7 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
       label: COLUMN_LABELS.data,
       dateRangeFilter: { from: filtroDataInicio, to: filtroDataFim, onChangeFrom: setFiltroDataInicio, onChangeTo: setFiltroDataFim },
     },
-    { key: 'descricao', label: COLUMN_LABELS.descricao },
+    { key: 'descricao', label: COLUMN_LABELS.descricao, filter: { options: opcoesDescricao, selected: filtroDescricao, onChange: setFiltroDescricao } },
     {
       key: 'categoria',
       label: COLUMN_LABELS.categoria,
@@ -86,9 +106,10 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
       label: COLUMN_LABELS.forma_pagamento,
       filter: { options: opcoesFormaPagamento, selected: filtroFormaPagamento, onChange: setFiltroFormaPagamento },
     },
-    { key: 'valor', label: COLUMN_LABELS.valor },
+    { key: 'valor', label: COLUMN_LABELS.valor, filter: { options: opcoesValor, selected: filtroValor, onChange: setFiltroValor } },
   ]
 
+  const columnsByKey = new Map(columns.map((c) => [c.key, c]))
   const visibleOrder = order.filter(isVisible)
   const gridTemplate = [...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH].join(' ')
   const minWidth = computeRowMinWidth([...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH])
@@ -140,11 +161,15 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
 
       <div className="data-table table-scroll">
         <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
-          {visibleOrder.map((key) => (
-            <div key={key} className={key === 'descricao' ? undefined : 'col-center'}>
-              {COLUMN_LABELS[key]}
-            </div>
-          ))}
+          {visibleOrder.map((key) => {
+            const col = columnsByKey.get(key)
+            return (
+              <div key={key} className="col-filter" style={{ justifyContent: key === 'descricao' ? 'flex-start' : 'center' }}>
+                <span>{COLUMN_LABELS[key]}</span>
+                <ColumnHeaderFilter filter={col?.filter} dateRangeFilter={col?.dateRangeFilter} />
+              </div>
+            )
+          })}
           <div></div>
         </div>
         {despesasPaginadas.map((d) => (
