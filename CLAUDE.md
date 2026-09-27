@@ -1,3 +1,11 @@
+# Teste local (sempre)
+
+Toda atualização do projeto deve ser testada em localhost **antes** do
+`git push`. Suba o servidor com `preview_start` usando a configuração
+`chmaia-dev` de `.claude/launch.json` (`npm run dev`, porta 3000 →
+http://localhost:3000), confira a tela alterada no navegador e verifique
+erros no console/logs. Só depois de validado localmente, publique via Git.
+
 # Deploy — Vercel
 
 **Projeto oficial (único a usar):** `chmaia-sistema`

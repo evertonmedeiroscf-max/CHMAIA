@@ -5,8 +5,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from '@/app/auth/actions'
 
-const LINKS = [
-  { href: '/dashboard', label: 'Resumo financeiro' },
+const LINKS: { href: string; label: string; pagina?: string }[] = [
+  { href: '/dashboard', label: 'Resumo financeiro mensal' },
+  // Mesma permissão do resumo mensal: lê os mesmos dados (pedidos+despesas).
+  { href: '/resumo-anual', label: 'Resumo financeiro anual', pagina: 'dashboard' },
   { href: '/orcamentos', label: 'Orçamentos' },
   { href: '/produtos', label: 'Produtos' },
   { href: '/pedidos', label: 'Pedidos' },
@@ -28,7 +30,7 @@ export default function NavBar({
 }) {
   const pathname = usePathname()
   const [menuAberto, setMenuAberto] = useState(false)
-  const liberados = isAdm ? LINKS : LINKS.filter((link) => paginas.includes(link.href.slice(1)))
+  const liberados = isAdm ? LINKS : LINKS.filter((link) => paginas.includes(link.pagina ?? link.href.slice(1)))
   const links = isAdm
     ? [...liberados, { href: '/usuarios', label: 'Usuários' }, { href: '/historico', label: 'Histórico' }]
     : liberados

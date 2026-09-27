@@ -87,7 +87,7 @@ export default function DashboardClient({ pedidos, despesas }: { pedidos: Pedido
   return (
     <div>
       <div className="page-header">
-        <h1>Resumo financeiro</h1>
+        <h1>Resumo financeiro mensal</h1>
         <DateRangePicker
           from={periodoInicio}
           to={periodoFim}

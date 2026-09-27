@@ -260,7 +260,7 @@ export type TipoUsuario = (typeof TIPOS_USUARIO)[number]
 // rotas em NavBar — mudar aqui exige atualizar as policies em
 // 0009_usuarios_paginas_acesso.sql (usuario_tem_acesso) também.
 export const PAGINAS_SISTEMA = [
-  { key: 'dashboard', label: 'Resumo financeiro' },
+  { key: 'dashboard', label: 'Resumo financeiro (mensal e anual)' },
   { key: 'orcamentos', label: 'Orçamentos' },
   { key: 'produtos', label: 'Produtos' },
   { key: 'pedidos', label: 'Pedidos' },
