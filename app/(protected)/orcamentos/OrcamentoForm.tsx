@@ -193,7 +193,7 @@ export default function OrcamentoForm({
           </label>
           <label>
             Status
-            <select name="status" defaultValue={orcamento?.status ?? 'pendente'} disabled={convertido}>
+            <select name="status" defaultValue={orcamento?.status ?? 'pendente'}>
               {STATUS_ORCAMENTO.map((s) => (
                 <option key={s} value={s}>
                   {STATUS_LABEL[s]}
@@ -208,8 +208,14 @@ export default function OrcamentoForm({
             vermelho — use &quot;Restaurar orçamento&quot; para reativá-lo.
           </p>
         )}
+        {!convertido && !excluido && (
+          <p className="modal-item-label">Ao salvar com status Aprovado, o orçamento entra automaticamente na aba Pedidos.</p>
+        )}
         {convertido && (
-          <p className="modal-item-label">Este orçamento já foi convertido em pedido — o status não pode mais ser alterado aqui.</p>
+          <p className="modal-item-label">
+            Este orçamento está na aba Pedidos. Alterações salvas aqui atualizam o pedido; se mudar para Recusado (ou
+            Pendente), o pedido é retirado — desde que ainda não tenha pagamento nem nota fiscal.
+          </p>
         )}
       </form>
 

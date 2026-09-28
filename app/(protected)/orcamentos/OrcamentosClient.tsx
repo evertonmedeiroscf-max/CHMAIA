@@ -312,8 +312,9 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
       </div>
 
       <p className="modal-item-label" style={{ marginBottom: 16 }}>
-        Cadastre a proposta enviada ao cliente. Quando ele aceitar, marque como <strong>aprovado</strong> e use
-        &quot;converter em pedido&quot; para gerar o Pedido automaticamente, sem digitar tudo de novo.
+        Cadastre a proposta enviada ao cliente. Quando ele aceitar, mude o status para <strong>aprovado</strong> e salve:
+        o orçamento entra automaticamente na aba Pedidos. Se depois for <strong>recusado</strong>, o pedido é retirado
+        (desde que ainda não tenha pagamento nem nota fiscal).
       </p>
 
       <div className="toolbar" style={{ justifyContent: 'flex-end' }}>
@@ -354,7 +355,7 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
               </button>
               {o.excluido_em ? null : o.pedido_id ? (
                 <span className="text-muted" style={{ fontSize: 12 }}>
-                  pedido gerado
+                  na aba Pedidos
                 </span>
               ) : o.status === 'aprovado' ? (
                 <button type="button" className="action-link primary" disabled={convertendoId === o.id} onClick={() => converter(o)}>

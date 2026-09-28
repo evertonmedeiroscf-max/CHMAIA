@@ -75,11 +75,9 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
 function ListaItens({ secao, marcadores = false }: { secao: SecaoOrcamento; marcadores?: boolean }) {
   return (
     <ul className={`pp-itens${marcadores ? ' pp-itens-marcador' : ''}`}>
+      {/* Só o nome do item — a observação é nota interna e não vai para o cliente. */}
       {secao.itens.map((item, i) => (
-        <li key={i}>
-          {item.nome}
-          {item.observacao && <small>{item.observacao}</small>}
-        </li>
+        <li key={i}>{item.nome}</li>
       ))}
     </ul>
   )
@@ -87,7 +85,8 @@ function ListaItens({ secao, marcadores = false }: { secao: SecaoOrcamento; marc
 
 // Proposta no layout do modelo do usuário (página 1: cardápio, serviços,
 // pagamento e total; página 2: informações importantes). Os itens aparecem
-// só pelo nome — preço unitário, peso e % de extras são custo interno.
+// só pelo nome — observação, preço unitário, peso e % de extras são
+// internos.
 export default function PropostaDocumento({ orcamento }: { orcamento: Orcamento }) {
   const pessoas = orcamento.numero_pessoas
   const comItens = orcamento.itens.filter((s) => s.itens.length > 0)
