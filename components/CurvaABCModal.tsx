@@ -20,7 +20,7 @@ function formatPct(v: number) {
   return `${v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
 }
 
-export default function CurvaABCModal({ itens }: { itens: EstoqueItem[] }) {
+export default function CurvaABCModal({ itens, onClose }: { itens: EstoqueItem[]; onClose: () => void }) {
   const analise = useMemo(() => {
     // Itens sem custo/und. cadastrado têm valor_total_estoque = 0 — não é
     // que valem zero, é que falta dado. Excluir da curva (mas avisar
@@ -294,6 +294,15 @@ export default function CurvaABCModal({ itens }: { itens: EstoqueItem[] }) {
             </p>
           </>
         )}
+      </div>
+
+      <div className="modal-footer">
+        <div />
+        <div className="modal-footer-right">
+          <button type="button" className="btn-secondary" onClick={onClose}>
+            Fechar
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -7,8 +7,7 @@ import { signOut } from '@/app/auth/actions'
 
 const LINKS: { href: string; label: string; pagina?: string }[] = [
   { href: '/dashboard', label: 'Resumo financeiro mensal' },
-  // Mesma permissão do resumo mensal: lê os mesmos dados (pedidos+despesas).
-  { href: '/resumo-anual', label: 'Resumo financeiro anual', pagina: 'dashboard' },
+  { href: '/resumo-anual', label: 'Resumo financeiro anual' },
   { href: '/orcamentos', label: 'Orçamentos' },
   { href: '/produtos', label: 'Produtos' },
   { href: '/pedidos', label: 'Pedidos' },

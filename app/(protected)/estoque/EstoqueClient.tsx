@@ -311,20 +311,24 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
       />
 
       {modal?.type === 'item' && (
-        <Modal title={modal.item ? 'Editar item de estoque' : 'Novo item de estoque'} onClose={fecharModal}>
+        <Modal
+          title={modal.item ? 'Editar item de estoque' : 'Novo item de estoque'}
+          onClose={fecharModal}
+          closeOnBackdropClick={false}
+        >
           <ItemForm key={modal.item?.id ?? 'novo'} item={modal.item} onClose={fecharModal} />
         </Modal>
       )}
 
       {modal?.type === 'movimento' && (
-        <Modal title="Registrar movimento" onClose={fecharModal}>
+        <Modal title="Registrar movimento" onClose={fecharModal} closeOnBackdropClick={false}>
           <MovimentoForm key={modal.item.id} item={modal.item} onClose={fecharModal} />
         </Modal>
       )}
 
       {modal?.type === 'abc' && (
-        <Modal title="Análise ABC do estoque" onClose={fecharModal} wide>
-          <CurvaABCModal itens={itens} />
+        <Modal title="Análise ABC do estoque" onClose={fecharModal} wide closeOnBackdropClick={false}>
+          <CurvaABCModal itens={itens} onClose={fecharModal} />
         </Modal>
       )}
     </div>

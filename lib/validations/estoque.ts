@@ -1,13 +1,16 @@
 import { z } from 'zod'
 import { CATEGORIAS_ESTOQUE, TIPOS_MOVIMENTO, UNIDADES_MEDIDA } from '@/lib/types/domain'
 
+// nome/marca_fornecedor sempre gravados em maiúsculas, não importa como o
+// usuário digitou — padroniza a exibição na tabela e evita duas linhas pro
+// mesmo item só por causa de caixa diferente ("Bacon" vs "bacon").
 export const estoqueItemSchema = z.object({
-  nome: z.string().min(1, 'Informe o nome do item'),
+  nome: z.string().trim().toUpperCase().min(1, 'Informe o nome do item'),
   categoria: z.enum(CATEGORIAS_ESTOQUE),
   unidade_medida: z.enum(UNIDADES_MEDIDA),
   preco_corrente: z.coerce.number().nonnegative('Preço não pode ser negativo').nullable().optional(),
   custo_unidade: z.coerce.number().nonnegative('Custo não pode ser negativo').nullable().optional(),
-  marca_fornecedor: z.string().nullable().optional(),
+  marca_fornecedor: z.string().trim().toUpperCase().nullable().optional(),
   quantidade_minima: z.coerce.number().nonnegative('Quantidade mínima não pode ser negativa'),
 })
 
