@@ -7,7 +7,7 @@ import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import PedidosCalendar from './PedidosCalendar'
 import PedidoForm from './PedidoForm'
-import { ENTIDADE_TIPOS, STATUS_PEDIDO, type FormaPagamento, type Pedido } from '@/lib/types/domain'
+import { ENTIDADE_LABEL, ENTIDADE_TIPOS, STATUS_PEDIDO, type FormaPagamento, type Pedido } from '@/lib/types/domain'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
@@ -243,7 +243,7 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
     {
       key: 'entidade',
       label: COLUMN_LABELS.entidade,
-      filter: { options: ENTIDADE_TIPOS.map((t) => ({ value: t, label: t })), selected: filtroEntidade, onChange: setFiltroEntidade },
+      filter: { options: ENTIDADE_TIPOS.map((t) => ({ value: t, label: ENTIDADE_LABEL[t] })), selected: filtroEntidade, onChange: setFiltroEntidade },
     },
     {
       key: 'forma_pagamento',

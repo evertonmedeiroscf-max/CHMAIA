@@ -87,6 +87,15 @@ export default function ProdutoForm({ produto, onClose }: { produto?: Produto; o
           </label>
         </div>
         <label>
+          Observação
+          <input
+            type="text"
+            name="observacao"
+            defaultValue={produto?.observacao ?? ''}
+            placeholder="Ex: Mínimo de 20 unidades, serve 10 pessoas"
+          />
+        </label>
+        <label>
           Ativo
           <select name="ativo" defaultValue={produto?.ativo === false ? 'N' : 'S'}>
             <option value="S">Sim</option>

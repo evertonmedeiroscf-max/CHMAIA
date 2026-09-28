@@ -90,6 +90,7 @@ export interface Database {
           categoria: string | null
           peso_kg_padrao: number | null
           valor_unit_padrao: number
+          observacao: string | null
           ativo: boolean
           created_by: string | null
           created_at: string
@@ -102,6 +103,7 @@ export interface Database {
           categoria?: string | null
           peso_kg_padrao?: number | null
           valor_unit_padrao: number
+          observacao?: string | null
           ativo?: boolean
           created_by?: string | null
           created_at?: string
@@ -124,6 +126,7 @@ export interface Database {
           validade: string | null
           status: string
           pedido_id: string | null
+          excluido_em: string | null
           numero_pessoas: number | null
           percentual_extras: number
           itens: Json
@@ -144,6 +147,7 @@ export interface Database {
           validade?: string | null
           status?: string
           pedido_id?: string | null
+          excluido_em?: string | null
           numero_pessoas?: number | null
           percentual_extras?: number
           itens?: Json

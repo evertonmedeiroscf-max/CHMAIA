@@ -6,7 +6,7 @@ import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/Colum
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import OrcamentoForm from './OrcamentoForm'
-import { ENTIDADE_TIPOS, STATUS_ORCAMENTO, type Orcamento, type Produto } from '@/lib/types/domain'
+import { ENTIDADE_LABEL, ENTIDADE_TIPOS, STATUS_ORCAMENTO, type Orcamento, type Produto } from '@/lib/types/domain'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
@@ -78,6 +78,16 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
   const [filtroStatus, setFiltroStatus] = useState<string[]>([])
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<Orcamento | undefined>(undefined)
+  // Depois de salvar, o modal continua aberto no orçamento salvo (com o
+  // botão "Gerar proposta"); quando a lista recarrega do servidor, troca
+  // `editando` pela versão gravada — num orçamento novo isso remonta o
+  // formulário já em modo edição.
+  const [salvoId, setSalvoId] = useState<string | null>(null)
+  useEffect(() => {
+    if (!salvoId) return
+    const salvo = orcamentos.find((o) => o.id === salvoId)
+    if (salvo) setEditando(salvo)
+  }, [orcamentos, salvoId])
   const [convertendoId, setConvertendoId] = useState<string | null>(null)
   const [erroConversao, setErroConversao] = useState('')
   const [, startTransition] = useTransition()
@@ -176,7 +186,7 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
     {
       key: 'entidade',
       label: COLUMN_LABELS.entidade,
-      filter: { options: ENTIDADE_TIPOS.map((t) => ({ value: t, label: t })), selected: filtroEntidade, onChange: setFiltroEntidade },
+      filter: { options: ENTIDADE_TIPOS.map((t) => ({ value: t, label: ENTIDADE_LABEL[t] })), selected: filtroEntidade, onChange: setFiltroEntidade },
     },
     {
       key: 'data_evento',
@@ -223,13 +233,20 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
   const minWidth = computeRowMinWidth([...visibleOrder.map((k) => COLUMN_WIDTHS[k]), ACAO_WIDTH])
 
   function abrirNovo() {
+    setSalvoId(null)
     setEditando(undefined)
     setModalAberto(true)
   }
 
   function abrirEdicao(orcamento: Orcamento) {
+    setSalvoId(null)
     setEditando(orcamento)
     setModalAberto(true)
+  }
+
+  function fecharModal() {
+    setSalvoId(null)
+    setModalAberto(false)
   }
 
   function converter(orcamento: Orcamento) {
@@ -273,7 +290,11 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
       case 'status':
         return (
           <div className="col-center">
-            <span className={`badge ${STATUS_BADGE_CLASS[o.status]}`}>{STATUS_LABEL[o.status]}</span>
+            {o.excluido_em ? (
+              <span className="badge badge-excluido">EXCLUÍDO</span>
+            ) : (
+              <span className={`badge ${STATUS_BADGE_CLASS[o.status]}`}>{STATUS_LABEL[o.status]}</span>
+            )}
           </div>
         )
       default:
@@ -320,13 +341,18 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
         </div>
 
         {orcamentosPaginados.map((o) => (
-          <div key={o.id} className="table-row" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
+          <div
+            key={o.id}
+            className={`table-row${o.excluido_em ? ' row-excluido' : ''}`}
+            style={{ gridTemplateColumns: gridTemplate, minWidth }}
+            title={o.excluido_em ? `Excluído em ${new Date(o.excluido_em).toLocaleDateString('pt-BR')}` : undefined}
+          >
             {visibleOrder.map((key) => cloneElement(renderCell(key, o), { key }))}
             <div className="col-center" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
               <button type="button" className="action-link" onClick={() => abrirEdicao(o)}>
                 editar
               </button>
-              {o.pedido_id ? (
+              {o.excluido_em ? null : o.pedido_id ? (
                 <span className="text-muted" style={{ fontSize: 12 }}>
                   pedido gerado
                 </span>
@@ -351,8 +377,15 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
       />
 
       {modalAberto && (
-        <Modal title={editando ? 'Editar orçamento' : 'Novo orçamento'} onClose={() => setModalAberto(false)}>
-          <OrcamentoForm key={editando?.id ?? 'novo'} orcamento={editando} produtos={produtos} onClose={() => setModalAberto(false)} />
+        <Modal title={editando ? `Orçamento nº ${editando.numero}` : 'Novo orçamento'} onClose={fecharModal} wide>
+          <OrcamentoForm
+            key={editando?.id ?? 'novo'}
+            orcamento={editando}
+            produtos={produtos}
+            onClose={fecharModal}
+            onSalvo={setSalvoId}
+            recemSalvo={!!salvoId && salvoId === editando?.id}
+          />
         </Modal>
       )}
     </div>

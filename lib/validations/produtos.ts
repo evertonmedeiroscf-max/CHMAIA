@@ -7,6 +7,7 @@ export const produtoSchema = z.object({
   categoria: z.string().nullable().optional(),
   peso_kg_padrao: z.coerce.number().nonnegative('Peso não pode ser negativo').nullable().optional(),
   valor_unit_padrao: z.coerce.number().nonnegative('Valor não pode ser negativo'),
+  observacao: z.string().nullable().optional(),
   ativo: z.boolean(),
 })
 

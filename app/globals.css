@@ -1584,3 +1584,703 @@ input[type='password'] {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Planilha de orçamento ---------- */
+.planilha-wrap {
+  overflow-x: auto;
+}
+
+.planilha {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+  border: 1px solid var(--border);
+}
+
+.planilha th {
+  background: oklch(0.97 0.004 80);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.planilha td {
+  padding: 0 6px;
+  height: 32px;
+  border-bottom: 1px solid var(--border-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planilha .num {
+  text-align: right;
+}
+
+.planilha-item input {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  padding: 5px 6px;
+  font-size: 13px;
+}
+
+.planilha-item input:hover {
+  border-color: var(--border);
+}
+
+.planilha-item input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--surface);
+}
+
+.planilha-indice {
+  color: var(--text-faint);
+  font-size: 11px;
+  text-align: center;
+}
+
+.planilha-secao td {
+  background: var(--primary-bg);
+  border-top: 2px solid var(--border-strong);
+  padding: 6px;
+  height: auto;
+  overflow: visible;
+}
+
+.planilha-secao-conteudo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planilha-secao-nome {
+  flex: 0 1 300px;
+  font-weight: 700;
+  color: var(--primary-text);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.planilha-acoes td {
+  height: 36px;
+  overflow: visible;
+}
+
+.planilha-acoes td > * + * {
+  margin-left: 12px;
+}
+
+.planilha-acoes select {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.planilha-dica {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.planilha-total td {
+  background: oklch(0.97 0.004 80);
+  font-weight: 700;
+}
+
+.planilha-por-pessoa td {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.planilha-fechamento tr:first-child td {
+  border-top: 2px solid var(--border-strong);
+}
+
+.planilha-final td {
+  font-weight: 700;
+  font-size: 14px;
+  background: var(--primary-bg);
+  color: var(--primary-text);
+}
+
+.planilha-extras {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.planilha-extras input {
+  width: 64px;
+  padding: 4px 6px;
+}
+
+.planilha-remover {
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.planilha-remover:hover {
+  color: var(--danger);
+}
+
+.planilha-rodape {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Item da planilha: nome + observação empilhados na mesma célula */
+.planilha td.planilha-item-nome {
+  height: auto;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.planilha-item input.planilha-item-obs {
+  display: block;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.planilha-item input.planilha-item-obs::placeholder {
+  color: var(--border-strong);
+}
+
+/* Seletor do catálogo estilo filtro do Excel */
+.seletor-catalogo-botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.seletor-catalogo-botao:hover {
+  border-color: var(--primary);
+}
+
+.seletor-catalogo {
+  position: fixed;
+  z-index: 200;
+  width: 380px;
+  max-width: calc(100vw - 16px);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px;
+}
+
+.seletor-catalogo-lista {
+  height: 300px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.seletor-catalogo-opcao {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 4px;
+  font-size: 12px;
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.seletor-catalogo-opcao:hover {
+  background: var(--primary-bg);
+}
+
+.seletor-catalogo-opcao input {
+  margin-top: 2px;
+  flex: none;
+}
+
+.seletor-catalogo-todos {
+  font-style: italic;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.seletor-catalogo-nome {
+  flex: 1;
+  min-width: 0;
+}
+
+.seletor-catalogo-nome small {
+  display: block;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.seletor-catalogo-preco {
+  flex: none;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.seletor-catalogo-vazio {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin: 8px 4px;
+}
+
+.seletor-catalogo-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.seletor-catalogo-rodape button {
+  padding: 5px 14px;
+  font-size: 12px;
+}
+
+/* Orçamento excluído: continua na lista, realçado em vermelho */
+.table-row.row-excluido {
+  background: var(--danger-bg);
+  box-shadow: inset 4px 0 0 var(--danger);
+}
+
+.table-row.row-excluido > div,
+.table-row.row-excluido .text-muted,
+.table-row.row-excluido .text-strong {
+  color: var(--danger);
+}
+
+.badge-excluido {
+  background: var(--danger);
+  color: #fff;
+}
+
+.seletor-catalogo-categoria {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.orcamento-salvo {
+  align-self: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.btn-proposta {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  background: #6f2a2e;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.btn-proposta:hover {
+  background: #5a2226;
+  color: #fff;
+  text-decoration: none;
+}
+
+/* ---------- Proposta para o cliente (/proposta/[id]) ----------
+   Layout do modelo "Mesa Fixa 50 pessoas.pdf": cores tiradas do PDF. */
+.pp-pagina {
+  --pp-vinho: #6f2a2e;
+  --pp-vinho-escuro: #671a20;
+  --pp-verde: #57612d;
+  --pp-bege: #faf6ed;
+  --pp-texto: #3b3b3b;
+  min-height: 100vh;
+  padding: 24px 16px 48px;
+  background: #e9e6e1;
+  font-family: var(--fonte-condensada), 'Arial Narrow', sans-serif;
+}
+
+.pp-acoes {
+  max-width: 210mm;
+  margin: 0 auto 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.pp-folha {
+  position: relative;
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  margin: 0 auto 24px;
+  padding: 0 12mm 22mm;
+  background: #fff;
+  color: var(--pp-texto);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.12);
+  overflow: hidden;
+}
+
+.pp-marca-dagua {
+  position: absolute;
+  top: 88mm;
+  left: 50%;
+  width: 105mm;
+  transform: translateX(-50%);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.pp-marca-canto {
+  position: absolute;
+  right: -14mm;
+  bottom: -8mm;
+  width: 48mm;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.pp-cabecalho {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 7mm;
+  margin: 0 -12mm;
+}
+
+.pp-logo {
+  width: 112mm;
+  height: 34mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3mm 10mm 0 28mm;
+  background: var(--pp-vinho);
+  border-bottom-right-radius: 4mm;
+}
+
+.pp-logo img {
+  width: 100%;
+  height: auto;
+}
+
+.pp-contato {
+  padding-top: 7mm;
+  font-size: 13.5px;
+  letter-spacing: 0.08em;
+  line-height: 1.45;
+  font-weight: 300;
+  color: #333;
+}
+
+.pp-slogan {
+  position: relative;
+  margin: 5mm 0 6mm;
+  text-align: center;
+  font-family: var(--fonte-cursiva), cursive;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--pp-vinho);
+}
+
+.pp-titulo {
+  position: relative;
+  border: 1px solid var(--pp-vinho);
+  border-radius: 4mm;
+  overflow: hidden;
+  margin: 0 0 2mm;
+}
+
+.pp-titulo-linha {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5mm;
+  padding: 3mm 6mm 1mm;
+}
+
+.pp-titulo h1 {
+  margin: 0;
+  max-width: 62%;
+  font-family: var(--fonte-condensada), sans-serif;
+  font-weight: 500;
+  font-size: 27px;
+  line-height: 1.05;
+  letter-spacing: 0.08em;
+  text-align: right;
+  color: #444;
+  padding-right: 5mm;
+  border-right: 1px solid #555;
+}
+
+.pp-titulo-pessoas {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  font-weight: 300;
+}
+
+.pp-titulo-sub {
+  background: var(--pp-bege);
+  text-align: center;
+  font-family: var(--fonte-cursiva), cursive;
+  font-size: 32px;
+  line-height: 1.25;
+  color: var(--pp-vinho);
+  padding: 0 4mm 1mm;
+}
+
+.pp-referencia {
+  position: relative;
+  margin: 0 0 6mm;
+  text-align: center;
+  font-family: var(--fonte-texto), sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: #8a8a8a;
+}
+
+.pp-colunas {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 9mm;
+}
+
+.pp-secao {
+  margin-bottom: 6mm;
+  break-inside: avoid;
+}
+
+.pp-faixa {
+  margin: 0 0 4mm 2mm;
+  width: 88%;
+  padding: 2.2mm 4mm;
+  background: var(--pp-verde);
+  color: #fff;
+  text-align: center;
+  font-family: var(--fonte-condensada), sans-serif;
+  font-weight: 400;
+  font-size: 17px;
+  letter-spacing: 0.1em;
+  text-transform: none;
+  box-shadow: 1px 2px 3px rgb(0 0 0 / 0.25);
+}
+
+.pp-itens {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1mm;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+.pp-itens small {
+  display: block;
+  margin-top: -1px;
+  font-size: 12.5px;
+  font-weight: 300;
+  color: #6b6b6b;
+}
+
+.pp-itens-marcador {
+  list-style: disc;
+  padding-left: 7mm;
+}
+
+.pp-adicional {
+  margin-top: 3mm;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--pp-vinho-escuro);
+}
+
+.pp-adicional strong {
+  display: inline-block;
+  margin-top: 1mm;
+  padding: 1mm 4mm;
+  border: 1px solid var(--pp-vinho-escuro);
+  background: var(--pp-bege);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+
+.pp-vazio {
+  font-style: italic;
+  color: #8a8a8a;
+}
+
+.pp-total {
+  display: inline-block;
+  margin: 2mm 0 0 -2mm;
+  padding: 2.5mm 6mm;
+  background: var(--pp-vinho-escuro);
+  color: #fff;
+  text-align: center;
+  font-family: var(--fonte-condensada), sans-serif;
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+}
+
+.pp-pagamento {
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.pp-pagamento p {
+  margin: 0;
+}
+
+.pp-rodape {
+  position: absolute;
+  left: 12mm;
+  right: 12mm;
+  bottom: 8mm;
+  display: flex;
+  justify-content: center;
+  gap: 14mm;
+  padding-top: 4mm;
+  border-top: 1px solid #444;
+  font-family: var(--fonte-texto), sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--pp-vinho);
+}
+
+.pp-info-titulo {
+  position: relative;
+  margin: 2mm auto 5mm;
+  width: 75%;
+  padding: 3mm 0;
+  border-top: 1px solid var(--pp-verde);
+  border-bottom: 1px solid var(--pp-verde);
+  text-align: center;
+  font-family: var(--fonte-cursiva), cursive;
+  font-weight: 400;
+  font-size: 50px;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--pp-vinho);
+}
+
+.pp-info {
+  position: relative;
+  font-family: var(--fonte-texto), sans-serif;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: #3b3b3b;
+  text-align: justify;
+}
+
+.pp-info p {
+  margin: 0;
+}
+
+.pp-qualidade {
+  position: relative;
+  display: flex;
+  gap: 5mm;
+  align-items: center;
+  margin-top: 6mm;
+  padding: 3mm 5mm;
+  border: 1px solid var(--pp-vinho);
+  border-radius: 3mm;
+  font-size: 13.5px;
+  line-height: 1.45;
+  text-align: justify;
+}
+
+.pp-qualidade p {
+  margin: 0;
+}
+
+.pp-qualidade-icone {
+  flex: none;
+  width: 16mm;
+  height: 16mm;
+  color: var(--pp-vinho);
+}
+
+@media (max-width: 820px) {
+  .pp-folha {
+    min-height: auto;
+    padding: 0 16px 80px;
+  }
+  .pp-cabecalho {
+    flex-direction: column;
+    margin: 0 -16px;
+  }
+  .pp-logo {
+    width: 100%;
+    padding: 12px 40px 8px;
+    height: auto;
+  }
+  .pp-contato {
+    padding: 8px 16px 0;
+  }
+  .pp-colunas {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  .pp-pagina {
+    padding: 0;
+    background: #fff;
+  }
+  .pp-acoes {
+    display: none;
+  }
+  .pp-folha {
+    margin: 0;
+    box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+  }
+  .pp-folha:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+  .pp-pagina * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+.planilha-opcional {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--amber-text);
+}

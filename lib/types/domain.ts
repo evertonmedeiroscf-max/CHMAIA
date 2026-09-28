@@ -4,6 +4,11 @@
 
 export const ENTIDADE_TIPOS = ['PF', 'PJ'] as const
 export type EntidadeTipo = (typeof ENTIDADE_TIPOS)[number]
+// Como o tipo aparece nas telas; no banco continua gravado só "PF"/"PJ".
+export const ENTIDADE_LABEL: Record<EntidadeTipo, string> = {
+  PF: 'Pessoa Física - PF',
+  PJ: 'Pessoa Jurídica - PJ',
+}
 
 export const FORMAS_PAGAMENTO = [
   'Pix',
@@ -91,6 +96,7 @@ export interface Produto {
   categoria: string | null
   peso_kg_padrao: number | null
   valor_unit_padrao: number
+  observacao: string | null
   ativo: boolean
   created_by: string | null
   created_at: string
@@ -106,6 +112,11 @@ export interface ItemOrcamento {
   peso_kg: number | null
   valor_unit: number
   quantidade: number
+  // Nota livre do item neste orçamento (ex.: "sem cebola", "mínimo 20
+  // unidades"). Vem preenchida com a observação do produto quando o item
+  // é inserido do catálogo, e pode ser editada. Opcional porque orçamentos
+  // antigos foram gravados sem ela.
+  observacao?: string | null
 }
 
 // Uma seção da planilha de custo (ex.: "Mesa Fixa", "Prato Quente",
@@ -140,6 +151,9 @@ export interface Orcamento {
   validade: string | null
   status: StatusOrcamento
   pedido_id: string | null
+  // Preenchido quando o orçamento é "excluído": ele continua na lista,
+  // realçado em vermelho, e pode ser restaurado (null = ativo).
+  excluido_em: string | null
   numero_pessoas: number | null
   percentual_extras: number
   itens: SecaoOrcamento[]

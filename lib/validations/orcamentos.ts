@@ -6,6 +6,7 @@ const itemOrcamentoSchema = z.object({
   peso_kg: z.number().nullable(),
   valor_unit: z.number().nonnegative('Valor unitário não pode ser negativo'),
   quantidade: z.number().nonnegative('Quantidade não pode ser negativa'),
+  observacao: z.string().nullable().optional(),
 })
 
 const secaoOrcamentoSchema = z.object({
@@ -21,7 +22,8 @@ export const orcamentoSchema = z.object({
   data_evento: z.string().nullable().optional(),
   hora_evento: z.string().nullable().optional(),
   descricao: z.string().nullable().optional(),
-  valor_total: z.coerce.number().positive('Valor deve ser maior que zero'),
+  // Pode ser 0: o orçamento é salvo primeiro só com os dados do cliente.
+  valor_total: z.coerce.number().nonnegative('Valor não pode ser negativo').default(0),
   validade: z.string().nullable().optional(),
   status: z.enum(STATUS_ORCAMENTO),
   numero_pessoas: z.coerce.number().int().positive().nullable().optional(),

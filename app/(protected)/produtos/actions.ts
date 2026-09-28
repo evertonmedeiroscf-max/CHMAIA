@@ -13,6 +13,7 @@ function parseFormData(formData: FormData) {
     categoria: formData.get('categoria') || null,
     peso_kg_padrao: formData.get('peso_kg_padrao') || null,
     valor_unit_padrao: formData.get('valor_unit_padrao'),
+    observacao: (formData.get('observacao') as string | null)?.trim() || null,
     ativo: formData.get('ativo') === 'S',
   }
 }

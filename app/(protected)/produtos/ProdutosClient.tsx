@@ -23,6 +23,7 @@ const COLUMN_LABELS: Record<string, string> = {
   categoria: 'CATEGORIA',
   peso_kg_padrao: 'PESO PADRÃO',
   valor_unit_padrao: 'VALOR UNIT.',
+  observacao: 'OBSERVAÇÃO',
   ativo: 'ATIVO',
 }
 
@@ -32,6 +33,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
   categoria: '160px',
   peso_kg_padrao: '110px',
   valor_unit_padrao: '110px',
+  observacao: '1fr',
   ativo: '80px',
 }
 
@@ -121,6 +123,7 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
       label: COLUMN_LABELS.valor_unit_padrao,
       filter: { options: opcoesValorUnit, selected: filtroValorUnit, onChange: setFiltroValorUnit },
     },
+    { key: 'observacao', label: COLUMN_LABELS.observacao },
     {
       key: 'ativo',
       label: COLUMN_LABELS.ativo,
@@ -166,6 +169,12 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
         return <div className="col-center text-muted">{p.peso_kg_padrao ?? '-'}</div>
       case 'valor_unit_padrao':
         return <div className="col-center">{formatCurrency(p.valor_unit_padrao)}</div>
+      case 'observacao':
+        return (
+          <div className="text-muted" style={{ fontSize: 12 }} title={p.observacao ?? undefined}>
+            {p.observacao || '-'}
+          </div>
+        )
       case 'ativo':
         return (
           <div className="col-center">

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
-import { ENTIDADE_TIPOS, FORMAS_PAGAMENTO, STATUS_PEDIDO, type Pedido, type StatusPedido } from '@/lib/types/domain'
+import { ENTIDADE_LABEL, ENTIDADE_TIPOS, FORMAS_PAGAMENTO, STATUS_PEDIDO, type Pedido, type StatusPedido } from '@/lib/types/domain'
 import { createPedido, deletePedido, updatePedido, type ActionState } from './actions'
 
 const STATUS_LABEL: Record<StatusPedido, string> = {
@@ -87,7 +87,7 @@ export default function PedidoForm({ pedido, onClose }: { pedido?: Pedido; onClo
           <select name="entidade" defaultValue={pedido?.entidade ?? 'PF'}>
             {ENTIDADE_TIPOS.map((tipo) => (
               <option key={tipo} value={tipo}>
-                {tipo}
+                {ENTIDADE_LABEL[tipo]}
               </option>
             ))}
           </select>
