@@ -974,6 +974,10 @@ input[type='password'] {
   width: 1080px;
 }
 
+.modal-panel-medium {
+  width: 680px;
+}
+
 @keyframes modalIn {
   from {
     opacity: 0;

@@ -75,3 +75,24 @@ Authentication → URL Configuration: Site URL e Redirect URLs
   usuário, gerada em console.anthropic.com — nunca colar a chave em texto
   no chat; o usuário mesmo adiciona em Project Settings → Environment
   Variables no Vercel (e em `.env.local` para testar em localhost).
+- `GOOGLE_CALENDAR_ID`, `GOOGLE_CALENDAR_CLIENT_EMAIL`,
+  `GOOGLE_CALENDAR_PRIVATE_KEY` — sincronizam Pedidos (data/hora do evento)
+  com a Google Agenda de `chefhilanamaia@gmail.com` (ver
+  `lib/google/calendar.ts`). Sem essas três variáveis, o cadastro de pedidos
+  funciona normalmente, só sem criar/atualizar/excluir o evento na agenda —
+  nunca bloqueia o pedido. Passo a passo pra configurar (feito uma única
+  vez, pelo usuário, no Google Cloud Console):
+  1. Criar um projeto no Google Cloud Console e ativar a "Google Calendar
+     API".
+  2. Criar uma conta de serviço (Service Account) nesse projeto e gerar uma
+     chave JSON pra ela.
+  3. Na Google Agenda de `chefhilanamaia@gmail.com`, compartilhar o
+     calendário com o e-mail da conta de serviço (campo `client_email` do
+     JSON), com permissão "Fazer alterações em eventos".
+  4. `GOOGLE_CALENDAR_ID` = `chefhilanamaia@gmail.com` (o id do calendário
+     principal é o próprio e-mail); `GOOGLE_CALENDAR_CLIENT_EMAIL` = campo
+     `client_email` do JSON; `GOOGLE_CALENDAR_PRIVATE_KEY` = campo
+     `private_key` do JSON (colar inteiro, com os `\n` como estão — o código
+     já desfaz o escape). Nunca colar essas credenciais em texto no chat; o
+     usuário mesmo adiciona em Project Settings → Environment Variables no
+     Vercel (e em `.env.local` para testar em localhost).

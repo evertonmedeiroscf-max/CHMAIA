@@ -30,6 +30,7 @@ export interface Database {
           banco: string | null
           data_pagamento: string | null
           status: string
+          google_calendar_event_id: string | null
           created_by: string | null
           created_at: string
           updated_at: string
@@ -49,6 +50,7 @@ export interface Database {
           banco?: string | null
           data_pagamento?: string | null
           status?: string
+          google_calendar_event_id?: string | null
           created_by?: string | null
           created_at?: string
           updated_at?: string

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { pedidoSchema } from '@/lib/validations/pedidos'
 import { FORMAS_PAGAMENTO, type FormaPagamento } from '@/lib/types/domain'
+import { excluirEventoPedido, sincronizarEventoPedido } from '@/lib/google/calendar'
 
 export type ActionState = { error?: string; success?: boolean } | undefined
 
@@ -31,9 +32,17 @@ export async function createPedido(_prevState: ActionState, formData: FormData):
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.from('pedidos').insert(parsed.data)
+  const { data, error } = await supabase.from('pedidos').insert(parsed.data).select().single()
 
   if (error) return { error: error.message }
+
+  // Cria o evento na Google Agenda (se a integração estiver configurada e o
+  // pedido tiver data/hora de evento) e grava o id retornado — falha aqui
+  // nunca impede o pedido de ser salvo (ver lib/google/calendar.ts).
+  const eventoId = await sincronizarEventoPedido(data, null)
+  if (eventoId) {
+    await supabase.from('pedidos').update({ google_calendar_event_id: eventoId }).eq('id', data.id)
+  }
 
   revalidatePath('/pedidos')
   revalidatePath('/dashboard')
@@ -51,9 +60,18 @@ export async function updatePedido(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.from('pedidos').update(parsed.data).eq('id', id)
+  const { data, error } = await supabase.from('pedidos').update(parsed.data).eq('id', id).select().single()
 
   if (error) return { error: error.message }
+
+  // Mantém o evento da Google Agenda em dia: atualiza se a data/hora do
+  // evento mudou, cria se não existia um ainda, ou apaga se o evento foi
+  // removido do pedido (ver sincronizarEventoPedido).
+  const eventoIdAnterior = data.google_calendar_event_id
+  const eventoId = await sincronizarEventoPedido(data, eventoIdAnterior)
+  if (eventoId !== eventoIdAnterior) {
+    await supabase.from('pedidos').update({ google_calendar_event_id: eventoId }).eq('id', id)
+  }
 
   revalidatePath('/pedidos')
   revalidatePath('/dashboard')
@@ -88,8 +106,13 @@ export async function updateDataPagamentoPedido(id: string, data_pagamento: stri
 
 export async function deletePedido(_id: string, _prevState: ActionState): Promise<ActionState> {
   const supabase = await createClient()
+  const { data: atual } = await supabase.from('pedidos').select('google_calendar_event_id').eq('id', _id).single()
+
   const { error } = await supabase.from('pedidos').delete().eq('id', _id)
   if (error) return { error: error.message }
+
+  await excluirEventoPedido(atual?.google_calendar_event_id ?? null)
+
   revalidatePath('/pedidos')
   revalidatePath('/dashboard')
   return { success: true }

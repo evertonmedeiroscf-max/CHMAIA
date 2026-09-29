@@ -76,6 +76,11 @@ export interface Pedido {
   banco: string | null
   data_pagamento: string | null
   status: StatusPedido
+  // Id do evento correspondente na Google Agenda (null se a integração não
+  // estiver configurada ou o pedido não tiver data/hora de evento — ver
+  // lib/google/calendar.ts). Gerenciado automaticamente pelas actions, nunca
+  // aparece no formulário.
+  google_calendar_event_id: string | null
   created_by: string | null
   created_at: string
   updated_at: string

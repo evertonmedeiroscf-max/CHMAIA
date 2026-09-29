@@ -5,6 +5,7 @@ import Link from 'next/link'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import CurvaABCModal from '@/components/CurvaABCModal'
+import ListaComprasModal from '@/components/ListaComprasModal'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import ItemForm from './ItemForm'
@@ -49,7 +50,12 @@ const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '120px'
 const ITENS_POR_PAGINA = 15
 
-type ModalState = { type: 'item'; item?: EstoqueItem } | { type: 'movimento'; item: EstoqueItem } | { type: 'abc' } | null
+type ModalState =
+  | { type: 'item'; item?: EstoqueItem }
+  | { type: 'movimento'; item: EstoqueItem }
+  | { type: 'abc' }
+  | { type: 'compras' }
+  | null
 
 export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
   const [filtroNome, setFiltroNome] = useState<string[]>([])
@@ -247,6 +253,9 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
         <button type="button" className="btn-secondary" onClick={() => setModal({ type: 'abc' })}>
           Curva ABC
         </button>
+        <button type="button" className="btn-secondary" onClick={() => setModal({ type: 'compras' })}>
+          Lista de compras
+        </button>
         <ColumnManagerPanel columns={columns} order={order} isVisible={isVisible} onToggleVisible={toggleVisible} onReorder={reorder} />
       </div>
 
@@ -329,6 +338,12 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
       {modal?.type === 'abc' && (
         <Modal title="Análise ABC do estoque" onClose={fecharModal} wide closeOnBackdropClick={false}>
           <CurvaABCModal itens={itens} onClose={fecharModal} />
+        </Modal>
+      )}
+
+      {modal?.type === 'compras' && (
+        <Modal title="Lista de compras" onClose={fecharModal} closeOnBackdropClick={false} medium>
+          <ListaComprasModal itens={itens} onClose={fecharModal} />
         </Modal>
       )}
     </div>
