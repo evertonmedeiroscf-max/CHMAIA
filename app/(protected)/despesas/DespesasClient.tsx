@@ -1,12 +1,14 @@
 'use client'
 
 import { cloneElement, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import DespesaForm from './DespesaForm'
 import ImportarDespesa from './ImportarDespesa'
+import LerNotaCompraButton from './notas-compra/LerNotaCompraButton'
 import { CATEGORIAS_DESPESA, type Despesa, type FormaPagamento } from '@/lib/types/domain'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
@@ -156,6 +158,10 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
 
       <div className="toolbar" style={{ justifyContent: 'flex-end' }}>
         <ImportarDespesa />
+        <LerNotaCompraButton />
+        <Link href="/despesas/notas-compra" className="btn-secondary">
+          Notas de compra
+        </Link>
         <ColumnManagerPanel columns={columns} order={order} isVisible={isVisible} onToggleVisible={toggleVisible} onReorder={reorder} />
       </div>
 

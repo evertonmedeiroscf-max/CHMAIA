@@ -227,6 +227,7 @@ export interface Database {
           quantidade: number
           data: string
           motivo: string | null
+          nota_item_id: string | null
           created_by: string | null
           created_at: string
         }
@@ -237,6 +238,7 @@ export interface Database {
           quantidade: number
           data?: string
           motivo?: string | null
+          nota_item_id?: string | null
           created_by?: string | null
           created_at?: string
         }
@@ -249,6 +251,89 @@ export interface Database {
             referencedColumns: ['id']
           },
         ]
+      }
+      notas_compra: {
+        Row: {
+          id: string
+          arquivo_path: string
+          nome_exibicao: string | null
+          mime_type: string
+          estabelecimento: string | null
+          data_compra: string | null
+          valor_total_lido: number | null
+          status: string
+          despesa_id: string | null
+          erro_processamento: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          arquivo_path: string
+          nome_exibicao?: string | null
+          mime_type: string
+          estabelecimento?: string | null
+          data_compra?: string | null
+          valor_total_lido?: number | null
+          status?: string
+          despesa_id?: string | null
+          erro_processamento?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['notas_compra']['Insert']>
+        Relationships: []
+      }
+      notas_compra_itens: {
+        Row: {
+          id: string
+          nota_id: string
+          texto_original: string
+          estoque_item_id: string | null
+          quantidade: number
+          valor_total: number
+          confianca: number | null
+          validado: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nota_id: string
+          texto_original: string
+          estoque_item_id?: string | null
+          quantidade: number
+          valor_total: number
+          confianca?: number | null
+          validado?: boolean
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['notas_compra_itens']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'notas_compra_itens_nota_id_fkey'
+            columns: ['nota_id']
+            referencedRelation: 'notas_compra'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      estoque_apelidos: {
+        Row: {
+          id: string
+          estoque_item_id: string
+          texto_normalizado: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          estoque_item_id: string
+          texto_normalizado: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['estoque_apelidos']['Insert']>
+        Relationships: []
       }
       notas_fiscais: {
         Row: {

@@ -116,8 +116,36 @@ export async function registrarMovimento(
 
 export async function deleteMovimento(itemId: string, movimentoId: string) {
   const supabase = await createClient()
+
+  const { data: movimento } = await supabase
+    .from('estoque_movimentos')
+    .select('nota_item_id')
+    .eq('id', movimentoId)
+    .single()
+
   const { error } = await supabase.from('estoque_movimentos').delete().eq('id', movimentoId)
   if (error) throw new Error(error.message)
+
+  // Esse movimento veio da confirmação de um item de nota de compra — sem
+  // isso, a nota ficava marcada como concluída pra sempre com um movimento
+  // que não existe mais, e o item sumia da tela de conferência.
+  if (movimento?.nota_item_id) {
+    const { data: item } = await supabase
+      .from('notas_compra_itens')
+      .select('nota_id')
+      .eq('id', movimento.nota_item_id)
+      .single()
+    await supabase
+      .from('notas_compra_itens')
+      .update({ validado: false, estoque_item_id: null })
+      .eq('id', movimento.nota_item_id)
+    if (item) {
+      await supabase.from('notas_compra').update({ status: 'aprovada' }).eq('id', item.nota_id).eq('status', 'concluida')
+      revalidatePath('/estoque/notas-compra')
+      revalidatePath(`/estoque/notas-compra/${item.nota_id}`)
+    }
+  }
+
   revalidatePath(`/estoque/${itemId}`)
   revalidatePath('/estoque')
 }

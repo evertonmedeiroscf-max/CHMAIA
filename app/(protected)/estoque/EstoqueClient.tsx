@@ -256,6 +256,9 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
         <button type="button" className="btn-secondary" onClick={() => setModal({ type: 'compras' })}>
           Lista de compras
         </button>
+        <Link href="/estoque/notas-compra" className="btn-secondary">
+          Notas de compra
+        </Link>
         <ColumnManagerPanel columns={columns} order={order} isVisible={isVisible} onToggleVisible={toggleVisible} onReorder={reorder} />
       </div>
 

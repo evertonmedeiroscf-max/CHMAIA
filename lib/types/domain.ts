@@ -209,7 +209,57 @@ export interface EstoqueMovimento {
   quantidade: number
   data: string
   motivo: string | null
+  // Preenchido quando o movimento veio da confirmação de um item de nota de
+  // compra (ver NotaCompraItem) — usado só para, ao excluir o movimento,
+  // devolver esse item para "pendente" em vez de deixar a nota inconsistente.
+  nota_item_id: string | null
   created_by: string | null
+  created_at: string
+}
+
+export const STATUS_NOTA_COMPRA = [
+  'processando',
+  'aguardando_aprovacao',
+  'aprovada',
+  'concluida',
+  'falha_leitura',
+] as const
+export type StatusNotaCompra = (typeof STATUS_NOTA_COMPRA)[number]
+
+// Comprovante de compra (nota fiscal, recibo, cupom, print) lido por IA em
+// duas etapas: aprovar em Despesas grava a despesa geral (status vira
+// 'aprovada'); confirmar os itens em Estoque (ver NotaCompraItem) lança as
+// entradas reais de estoque (status vira 'concluida' quando não sobra item
+// pendente). Ver components/plano em supabase/migrations/0024_notas_compra.sql.
+export interface NotaCompra {
+  id: string
+  arquivo_path: string
+  nome_exibicao: string | null
+  mime_type: string
+  estabelecimento: string | null
+  data_compra: string | null
+  valor_total_lido: number | null
+  status: StatusNotaCompra
+  despesa_id: string | null
+  erro_processamento: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Uma linha (produto) identificada pela IA numa nota de compra.
+// `estoque_item_id`/`quantidade`/`valor_total` começam com o que a IA leu e
+// só ficam definitivos quando `validado` vira true (confirmação manual na
+// tela de Estoque, nunca automática).
+export interface NotaCompraItem {
+  id: string
+  nota_id: string
+  texto_original: string
+  estoque_item_id: string | null
+  quantidade: number
+  valor_total: number
+  confianca: number | null
+  validado: boolean
   created_at: string
 }
 

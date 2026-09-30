@@ -64,17 +64,26 @@ Ao trocar o domínio de produção, atualizar em Supabase Dashboard →
 Authentication → URL Configuration: Site URL e Redirect URLs
 (`https://chmaia-sistema.vercel.app/auth/callback`).
 
+Bucket de Storage `notas-compra` (privado) guarda os comprovantes enviados em
+"Ler nota de compra" (Despesas). Chave do arquivo é sempre um uuid opaco —
+nunca o nome do estabelecimento — e o acesso é só por signed URL temporária
+gerada no servidor; não existe (e não precisa existir) uma service role
+nesse projeto.
+
 ## Variáveis de ambiente necessárias no Vercel
 
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   `NEXT_PUBLIC_SITE_URL` — já configuradas.
 - `ANTHROPIC_API_KEY` — necessária para o botão "Importar despesa" (lê
   foto/print/PDF de comprovante via IA com visão e preenche data/descrição/
-  valor). Sem essa chave, o botão aparece normalmente mas mostra um erro
-  claro ao tentar importar, em vez de quebrar a tela. Chave pessoal do
-  usuário, gerada em console.anthropic.com — nunca colar a chave em texto
-  no chat; o usuário mesmo adiciona em Project Settings → Environment
-  Variables no Vercel (e em `.env.local` para testar em localhost).
+  valor) e também para "Ler nota de compra" em Despesas (lê nota fiscal/
+  recibo/cupom de uma COMPRA e identifica estabelecimento, data e os itens
+  comprados — ver `app/(protected)/despesas/notas-compra/actions.ts`). Sem
+  essa chave, os dois botões aparecem normalmente mas mostram um erro claro
+  ao tentar importar, em vez de quebrar a tela. Chave pessoal do usuário,
+  gerada em console.anthropic.com — nunca colar a chave em texto no chat; o
+  usuário mesmo adiciona em Project Settings → Environment Variables no
+  Vercel (e em `.env.local` para testar em localhost).
 - `GOOGLE_CALENDAR_ID`, `GOOGLE_CALENDAR_CLIENT_EMAIL`,
   `GOOGLE_CALENDAR_PRIVATE_KEY` — sincronizam Pedidos (data/hora do evento)
   com a Google Agenda de `chefhilanamaia@gmail.com` (ver
