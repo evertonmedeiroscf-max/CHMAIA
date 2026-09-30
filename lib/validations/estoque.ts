@@ -4,6 +4,11 @@ import { CATEGORIAS_ESTOQUE, TIPOS_MOVIMENTO, UNIDADES_MEDIDA } from '@/lib/type
 // nome/marca_fornecedor sempre gravados em maiúsculas, não importa como o
 // usuário digitou — padroniza a exibição na tabela e evita duas linhas pro
 // mesmo item só por causa de caixa diferente ("Bacon" vs "bacon").
+// quantidade_atual pode ser digitada tanto na criação (estoque inicial)
+// quanto na edição — nesse segundo caso a action não grava o valor direto:
+// ela calcula a diferença e registra um movimento de ajuste (ver
+// updateEstoqueItem em actions.ts), pra quantidade_atual continuar sempre
+// derivada da soma dos movimentos (mesma garantia do trigger do banco).
 export const estoqueItemSchema = z.object({
   nome: z.string().trim().toUpperCase().min(1, 'Informe o nome do item'),
   categoria: z.enum(CATEGORIAS_ESTOQUE),
@@ -11,13 +16,8 @@ export const estoqueItemSchema = z.object({
   preco_corrente: z.coerce.number().nonnegative('Preço não pode ser negativo').nullable().optional(),
   custo_unidade: z.coerce.number().nonnegative('Custo não pode ser negativo').nullable().optional(),
   marca_fornecedor: z.string().trim().toUpperCase().nullable().optional(),
-  quantidade_minima: z.coerce.number().nonnegative('Quantidade mínima não pode ser negativa'),
-})
-
-// Quantidade atual só é informada na criação (estoque inicial). Depois
-// disso, só muda por meio de movimentos de entrada/saída.
-export const estoqueItemCreateSchema = estoqueItemSchema.extend({
   quantidade_atual: z.coerce.number().nonnegative('Quantidade atual não pode ser negativa'),
+  quantidade_minima: z.coerce.number().nonnegative('Quantidade mínima não pode ser negativa'),
 })
 
 export const estoqueMovimentoSchema = z.object({

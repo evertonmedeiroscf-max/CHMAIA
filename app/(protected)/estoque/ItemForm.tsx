@@ -88,12 +88,10 @@ export default function ItemForm({ item, onClose }: { item?: EstoqueItem; onClos
           />
         </label>
         <div className="modal-row">
-          {!item && (
-            <label>
-              Qtd. atual
-              <input type="number" name="quantidade_atual" step="0.01" min="0" defaultValue={0} />
-            </label>
-          )}
+          <label>
+            Qtd. atual
+            <input type="number" name="quantidade_atual" step="0.01" min="0" defaultValue={item?.quantidade_atual ?? 0} />
+          </label>
           <label>
             Qtd. mínima
             <input type="number" name="quantidade_minima" step="0.01" min="0" defaultValue={item?.quantidade_minima ?? 0} />
@@ -101,7 +99,8 @@ export default function ItemForm({ item, onClose }: { item?: EstoqueItem; onClos
         </div>
         {item && (
           <p className="modal-item-label">
-            Quantidade atual: <strong>{item.quantidade_atual}</strong> (ajuste pelo registro de movimentos)
+            Mudar a quantidade atual aqui registra um movimento de ajuste automaticamente (visível no histórico do
+            item) — para entradas/saídas do dia a dia, prefira o botão &quot;movimentar&quot;.
           </p>
         )}
       </form>
