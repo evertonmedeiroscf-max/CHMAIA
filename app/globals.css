@@ -319,6 +319,19 @@ button {
   color: var(--primary-hover);
 }
 
+.action-link.danger {
+  color: var(--danger);
+}
+
+.action-link.danger:hover {
+  color: var(--danger);
+}
+
+.action-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ---------- Page layout ---------- */
 .page-header {
   display: flex;

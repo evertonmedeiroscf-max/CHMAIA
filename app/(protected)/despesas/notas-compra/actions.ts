@@ -132,6 +132,64 @@ export async function aprovarDespesaNotaCompra(
   return { success: true }
 }
 
+// Exclui a nota por inteiro: a despesa que ela gerou (se já foi aprovada), os
+// itens lidos e o arquivo do comprovante. Se algum item já foi confirmado no
+// Estoque, recusa — apagar a nota deixaria entradas de estoque sem origem; o
+// caminho é excluir antes esses movimentos no histórico do item (o que
+// também devolve o item da nota pra pendente, ver deleteMovimento).
+// Ordem: despesa → nota → arquivo. Se falhar no meio, o que sobra continua
+// consistente e dá pra tentar de novo (nota sem despesa_id é tratada normal).
+export async function excluirNotaCompra(notaId: string): Promise<ActionState> {
+  const supabase = await createClient()
+
+  const { data: nota, error: erroLeitura } = await supabase
+    .from('notas_compra')
+    .select('arquivo_path, despesa_id')
+    .eq('id', notaId)
+    .single()
+  if (erroLeitura || !nota) return { error: 'Nota não encontrada' }
+
+  const { count: itensNoEstoque } = await supabase
+    .from('notas_compra_itens')
+    .select('id', { count: 'exact', head: true })
+    .eq('nota_id', notaId)
+    .eq('validado', true)
+  if (itensNoEstoque) {
+    return {
+      error:
+        'Essa nota já teve itens confirmados no estoque. Para excluí-la, primeiro exclua as entradas dela no histórico do item (aba Estoque) — isso devolve os itens para pendente — e depois exclua a nota.',
+    }
+  }
+
+  if (nota.despesa_id) {
+    const { data: despesaExcluida, error: erroDespesa } = await supabase
+      .from('despesas')
+      .delete()
+      .eq('id', nota.despesa_id)
+      .select('id')
+    if (erroDespesa) return { error: erroDespesa.message }
+    if (!despesaExcluida?.length) return { error: 'Não foi possível excluir a despesa dessa nota' }
+  }
+
+  const { data: notaExcluida, error: erroNota } = await supabase
+    .from('notas_compra')
+    .delete()
+    .eq('id', notaId)
+    .select('id')
+  if (erroNota) return { error: erroNota.message }
+  if (!notaExcluida?.length) return { error: 'Não foi possível excluir a nota' }
+
+  const { error: erroArquivo } = await supabase.storage.from('notas-compra').remove([nota.arquivo_path])
+  if (erroArquivo) console.error('[notas-compra] falha ao apagar o arquivo do comprovante', erroArquivo)
+
+  revalidatePath('/despesas/notas-compra')
+  revalidatePath('/despesas')
+  revalidatePath('/dashboard')
+  revalidatePath('/resumo-anual')
+  revalidatePath('/estoque/notas-compra')
+  return { success: true }
+}
+
 // Lê o documento com a mesma chamada crua (sem SDK) já usada em
 // despesas/actions.ts:extrairDespesaDeImagem — só que pedindo os itens da
 // compra em vez de uma despesa única. Nunca lança: qualquer falha grava
