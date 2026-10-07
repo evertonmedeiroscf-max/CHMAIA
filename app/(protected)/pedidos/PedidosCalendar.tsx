@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   addMonths,
   eachDayOfInterval,
@@ -16,6 +17,15 @@ import { ptBR } from 'date-fns/locale'
 import Modal from '@/components/Modal'
 import type { Pedido } from '@/lib/types/domain'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
+import {
+  prepararSincronizacaoGoogle,
+  sincronizarLotePedidosGoogle,
+  type ResumoSincronizacaoGoogle,
+} from './actions'
+
+// Quantos pedidos vão por vez ao servidor no envio à Google Agenda — lotes
+// pequenos mantêm cada chamada rápida e deixam mostrar o progresso.
+const PEDIDOS_POR_LOTE = 10
 
 const DIAS_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
@@ -31,15 +41,88 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
   pago: 'badge-pago',
 }
 
+function plural(n: number, singular: string, pluralForma: string) {
+  return `${n} ${n === 1 ? singular : pluralForma}`
+}
+
+type ResumoEnvio = ResumoSincronizacaoGoogle & { ignorados: number }
+
+function descreverResumo(resumo: ResumoEnvio) {
+  const partes: string[] = []
+  if (resumo.criados) partes.push(plural(resumo.criados, 'evento criado', 'eventos criados'))
+  if (resumo.atualizados) partes.push(plural(resumo.atualizados, 'atualizado', 'atualizados'))
+  if (resumo.removidos) partes.push(`${plural(resumo.removidos, 'removido', 'removidos')} (pedido sem data/hora)`)
+  if (partes.length === 0 && resumo.falhas === 0) partes.push('nenhum pedido com data e hora de evento para enviar')
+  if (resumo.ignorados) {
+    partes.push(`${plural(resumo.ignorados, 'pedido ignorado', 'pedidos ignorados')} por não ter data/hora do evento`)
+  }
+  return partes.join(' · ')
+}
+
 export default function PedidosCalendar({
   pedidos,
   onEdit,
+  googleAgendaConfigurada,
 }: {
   pedidos: Pedido[]
   onEdit: (pedido: Pedido) => void
+  googleAgendaConfigurada: boolean
 }) {
   const [mesAtual, setMesAtual] = useState(() => startOfMonth(new Date()))
   const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
+  const router = useRouter()
+  const [sincronizando, setSincronizando] = useState(false)
+  const [progressoSync, setProgressoSync] = useState<{ feitos: number; total: number } | null>(null)
+  const [resumoSync, setResumoSync] = useState<ResumoEnvio | null>(null)
+  const [erroSync, setErroSync] = useState('')
+
+  async function handleSincronizar() {
+    if (
+      !window.confirm(
+        'Enviar para a Google Agenda (chefhilanamaia@gmail.com) todos os pedidos que têm data e hora do evento?\n\n' +
+          'Pedidos que já estão na agenda são apenas atualizados — nada é duplicado.'
+      )
+    )
+      return
+
+    setSincronizando(true)
+    setErroSync('')
+    setResumoSync(null)
+    setProgressoSync(null)
+    try {
+      const preparo = await prepararSincronizacaoGoogle()
+      if ('error' in preparo) {
+        setErroSync(preparo.error)
+        return
+      }
+
+      const total: ResumoEnvio = { criados: 0, atualizados: 0, removidos: 0, falhas: 0, ignorados: preparo.ignorados }
+      for (let i = 0; i < preparo.ids.length; i += PEDIDOS_POR_LOTE) {
+        setProgressoSync({ feitos: i, total: preparo.ids.length })
+        const lote = preparo.ids.slice(i, i + PEDIDOS_POR_LOTE)
+        const resultado = await sincronizarLotePedidosGoogle(lote)
+        if ('error' in resultado) {
+          // Falha do lote inteiro (ex.: sem permissão, banco fora do ar): conta
+          // os pedidos dele como falhas e segue pro próximo lote.
+          total.falhas += lote.length
+          total.primeiroErro ??= resultado.error
+          continue
+        }
+        total.criados += resultado.resumo.criados
+        total.atualizados += resultado.resumo.atualizados
+        total.removidos += resultado.resumo.removidos
+        total.falhas += resultado.resumo.falhas
+        total.primeiroErro ??= resultado.resumo.primeiroErro
+      }
+      setResumoSync(total)
+      router.refresh()
+    } catch {
+      setErroSync('Não foi possível concluir a sincronização. Confira a conexão e tente novamente — o que já foi enviado não se repete.')
+    } finally {
+      setSincronizando(false)
+      setProgressoSync(null)
+    }
+  }
 
   // O calendário sempre posiciona o pedido pela data do evento — é quando o
   // buffet efetivamente acontece. Só cai pra data da venda quando não há
@@ -82,6 +165,45 @@ export default function PedidosCalendar({
 
   return (
     <div className="calendar">
+      <div className="calendar-sync-bar">
+        <p className="calendar-sync-note">
+          {googleAgendaConfigurada
+            ? 'Pedidos com data e hora do evento vão sozinhos para a Google Agenda ao salvar. Use o botão para enviar também os pedidos antigos.'
+            : 'Google Agenda ainda não configurada neste ambiente (faltam as variáveis GOOGLE_APPS_SCRIPT_* ou GOOGLE_CALENDAR_*). Os pedidos continuam funcionando normalmente.'}
+        </p>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={handleSincronizar}
+          disabled={!googleAgendaConfigurada || sincronizando}
+          title={googleAgendaConfigurada ? undefined : 'Configure a integração com a Google Agenda para habilitar'}
+        >
+          {sincronizando
+            ? progressoSync
+              ? `Enviando ${Math.min(progressoSync.feitos + PEDIDOS_POR_LOTE, progressoSync.total)} de ${progressoSync.total}…`
+              : 'Preparando…'
+            : 'Sincronizar com Google Agenda'}
+        </button>
+      </div>
+
+      {erroSync && (
+        <p className="form-error" style={{ marginBottom: 14 }}>
+          {erroSync}
+        </p>
+      )}
+      {resumoSync && (
+        <p className="calendar-sync-result">
+          Sincronização concluída: {descreverResumo(resumoSync)}
+          {resumoSync.falhas > 0 && (
+            <>
+              {' '}
+              · <strong>{plural(resumoSync.falhas, 'falha', 'falhas')}</strong>
+              {resumoSync.primeiroErro ? ` (${resumoSync.primeiroErro})` : ''} — clique de novo para tentar os que faltaram.
+            </>
+          )}
+        </p>
+      )}
+
       <div className="calendar-header">
         <button type="button" onClick={() => setMesAtual((m) => subMonths(m, 1))}>
           ‹

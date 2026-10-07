@@ -84,13 +84,46 @@ nesse projeto.
   gerada em console.anthropic.com — nunca colar a chave em texto no chat; o
   usuário mesmo adiciona em Project Settings → Environment Variables no
   Vercel (e em `.env.local` para testar em localhost).
-- `GOOGLE_CALENDAR_ID`, `GOOGLE_CALENDAR_CLIENT_EMAIL`,
-  `GOOGLE_CALENDAR_PRIVATE_KEY` — sincronizam Pedidos (data/hora do evento)
-  com a Google Agenda de `chefhilanamaia@gmail.com` (ver
-  `lib/google/calendar.ts`). Sem essas três variáveis, o cadastro de pedidos
-  funciona normalmente, só sem criar/atualizar/excluir o evento na agenda —
-  nunca bloqueia o pedido. Passo a passo pra configurar (feito uma única
-  vez, pelo usuário, no Google Cloud Console):
+- **Google Agenda de `chefhilanamaia@gmail.com`** — sincroniza Pedidos
+  (data/hora do evento) com a agenda (ver `lib/google/calendar.ts`). Há DOIS
+  jeitos de ligar, escolhidos pelas variáveis presentes (Apps Script tem
+  prioridade se as duas dele existirem). Sem nenhum dos dois, o cadastro de
+  pedidos funciona normalmente, só sem criar/atualizar/excluir o evento na
+  agenda — nunca bloqueia o pedido. Pedidos novos/editados vão sozinhos; pra
+  mandar os pedidos antigos (anteriores à integração), há o botão
+  "Sincronizar com Google Agenda" na sub-aba Calendário de Pedidos
+  (`prepararSincronizacaoGoogle` + `sincronizarLotePedidosGoogle` em
+  `app/(protected)/pedidos/actions.ts`, enviados em lotes de 10 com progresso)
+  — idempotente, quem já tem evento só é atualizado.
+
+  **Jeito 1 — Apps Script** (`GOOGLE_APPS_SCRIPT_URL`,
+  `GOOGLE_APPS_SCRIPT_TOKEN`). Não precisa de Google Cloud nem de chave —
+  é o caminho quando a organização do Google Cloud bloqueia a criação de
+  chaves de conta de serviço (política `iam.disableServiceAccountKeyCreation`,
+  comum em contas de domínio/Workspace). Feito uma única vez pelo usuário:
+  1. Entrar em script.google.com logado como `chefhilanamaia@gmail.com` →
+     "Novo projeto" → apagar o código de exemplo e colar o conteúdo de
+     `docs/google-agenda-apps-script.gs`.
+  2. Inventar uma senha longa (30+ caracteres, só letras e números) e
+     trocar `COLE_AQUI_A_SENHA` por ela, no topo do código. Salvar.
+  3. Selecionar a função `autorizar` e clicar em "Executar" uma vez, só pra
+     a Google pedir a permissão da agenda (aparece o aviso "app não
+     verificado": Avançado → Acessar projeto → Permitir).
+  4. "Implantar → Nova implantação" → tipo "App da Web" → Executar como:
+     **Eu** → Quem tem acesso: **Qualquer pessoa** → Implantar. Copiar a URL
+     (termina em `/exec`). Abrir essa URL no navegador deve mostrar
+     `{"ok":true,"mensagem":"Ponte com a Google Agenda ativa."}`.
+  5. `GOOGLE_APPS_SCRIPT_URL` = essa URL; `GOOGLE_APPS_SCRIPT_TOKEN` = a mesma
+     senha do passo 2. Vercel (Project Settings → Environment Variables, e
+     depois Redeploy) e `.env.local` (reiniciar o servidor). Nunca colar a
+     senha em texto no chat.
+  Se editar o script depois, é preciso "Implantar → Gerenciar implantações →
+  editar → Nova versão" pra valer na mesma URL.
+
+  **Jeito 2 — Conta de serviço do Google Cloud** (`GOOGLE_CALENDAR_ID`,
+  `GOOGLE_CALENDAR_CLIENT_EMAIL`, `GOOGLE_CALENDAR_PRIVATE_KEY`). Passo a
+  passo pra configurar (feito uma única vez, pelo usuário, no Google Cloud
+  Console):
   1. Criar um projeto no Google Cloud Console e ativar a "Google Calendar
      API".
   2. Criar uma conta de serviço (Service Account) nesse projeto e gerar uma

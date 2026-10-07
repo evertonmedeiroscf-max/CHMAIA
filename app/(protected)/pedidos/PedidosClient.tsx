@@ -100,7 +100,13 @@ const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '70px'
 const ITENS_POR_PAGINA = 15
 
-export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
+export default function PedidosClient({
+  pedidos,
+  googleAgendaConfigurada,
+}: {
+  pedidos: Pedido[]
+  googleAgendaConfigurada: boolean
+}) {
   const [viewMode, setViewMode] = useState<ViewMode>('lista')
   const [filtroNumero, setFiltroNumero] = useState<string[]>([])
   const [filtroDataInicio, setFiltroDataInicio] = useState('')
@@ -397,7 +403,13 @@ export default function PedidosClient({ pedidos }: { pedidos: Pedido[] }) {
         </div>
       </div>
 
-      {viewMode === 'calendario' && <PedidosCalendar pedidos={pedidosFiltrados} onEdit={abrirEdicao} />}
+      {viewMode === 'calendario' && (
+        <PedidosCalendar
+          pedidos={pedidosFiltrados}
+          onEdit={abrirEdicao}
+          googleAgendaConfigurada={googleAgendaConfigurada}
+        />
+      )}
 
       {viewMode === 'lista' && (
         <>
