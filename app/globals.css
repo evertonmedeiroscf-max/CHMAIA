@@ -897,6 +897,11 @@ input[type='password'] {
   color: var(--primary-text);
 }
 
+.calendar-sync-result-warn {
+  background: var(--amber-bg);
+  color: var(--amber-text);
+}
+
 .calendar-header {
   display: flex;
   align-items: center;
@@ -1121,6 +1126,31 @@ input[type='password'] {
   border-radius: var(--radius);
   font-size: 12px;
   margin: 0;
+}
+
+/* Aviso de possível pedido duplicado (formulário de Pedidos). */
+.alerta-duplicado {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--amber-text);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  font-size: 13px;
+}
+
+.alerta-duplicado p {
+  margin: 6px 0 0;
+}
+
+.alerta-duplicado ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.alerta-duplicado li {
+  margin-bottom: 4px;
 }
 
 @media (max-width: 720px) {

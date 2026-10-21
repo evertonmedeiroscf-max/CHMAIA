@@ -119,6 +119,16 @@ async function chamarAppsScript(operacoes: OperacaoAppsScript[]): Promise<Respos
   })
 
   const texto = await resposta.text()
+
+  // 401/403: o Google barrou o pedido antes de chegar no script — quase sempre
+  // porque a implantação não está como "Qualquer pessoa", ou foi alterada sem
+  // salvar como "Nova versão".
+  if (resposta.status === 401 || resposta.status === 403) {
+    throw new Error(
+      `O Google bloqueou o acesso ao script (HTTP ${resposta.status}). Na implantação do Apps Script, "Quem tem acesso" precisa ser "Qualquer pessoa", e a mudança só vale depois de salvar como "Nova versão". Teste abrindo a URL numa janela anônima: deve aparecer {"ok":true,...} sem pedir login.`
+    )
+  }
+
   let dados: { erro?: string; resultados?: RespostaOperacaoAppsScript[] }
   try {
     dados = JSON.parse(texto)

@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { ENTIDADE_LABEL, ENTIDADE_TIPOS, FORMAS_PAGAMENTO, STATUS_PEDIDO, type Pedido, type StatusPedido } from '@/lib/types/domain'
 import { createPedido, deletePedido, updatePedido, type ActionState } from './actions'
+import AvisoPedidoDuplicado from './AvisoPedidoDuplicado'
 
 const STATUS_LABEL: Record<StatusPedido, string> = {
   pendente: 'Pendente',
@@ -18,11 +19,12 @@ function sugerirStatus(valorTotal: number, valorPago: number): StatusPedido {
   return 'pendente'
 }
 
-function SaveButton({ formId }: { formId: string }) {
+function SaveButton({ formId, salvando }: { formId: string; salvando: boolean }) {
   const { pending } = useFormStatus()
+  const ocupado = pending || salvando
   return (
-    <button type="submit" form={formId} className="btn-primary" disabled={pending}>
-      {pending ? 'Salvando...' : 'Salvar'}
+    <button type="submit" form={formId} className="btn-primary" disabled={ocupado}>
+      {ocupado ? 'Salvando...' : 'Salvar'}
     </button>
   )
 }
@@ -49,9 +51,49 @@ export default function PedidoForm({ pedido, onClose }: { pedido?: Pedido; onClo
   const [status, setStatus] = useState<StatusPedido>(pedido?.status ?? 'pendente')
   const [statusTocado, setStatusTocado] = useState(false)
 
+  // Pedido em duplicidade: o servidor devolve `duplicados` sem salvar; a tela
+  // mostra o aviso e troca "Salvar" por "Salvar mesmo assim", que reenvia o
+  // formulário com `confirmar_duplicado=1`.
+  //
+  // O envio é manual (onSubmit + startTransition) em vez de `<form action>`
+  // porque o React 19 LIMPA os campos de um `<form action>` depois da resposta
+  // do servidor — o aviso (ou um erro de validação) apagaria tudo que o usuário
+  // digitou. `salvando` (a transição pendente) também impede clique duplo, que
+  // criaria o pedido duas vezes.
+  const formRef = useRef<HTMLFormElement>(null)
+  const confirmarRef = useRef<HTMLInputElement>(null)
+  const [salvando, iniciarEnvio] = useTransition()
+  const [mostrarAviso, setMostrarAviso] = useState(false)
+  // Trava imediata (o estado `salvando` só chega no próximo render): dois envios
+  // no mesmo instante criariam o pedido duas vezes.
+  const enviandoRef = useRef(false)
+
+  useEffect(() => {
+    if (!salvando) enviandoRef.current = false
+  }, [salvando])
+
   useEffect(() => {
     if (state?.success) onClose()
   }, [state, onClose])
+
+  useEffect(() => {
+    enviandoRef.current = false
+    if (!state) return
+    // A confirmação vale só pra UM envio: se algo mais der errado, pede de novo.
+    if (confirmarRef.current) confirmarRef.current.value = ''
+    setMostrarAviso(!!state.duplicados?.length)
+  }, [state])
+
+  function limparConfirmacao() {
+    if (confirmarRef.current) confirmarRef.current.value = ''
+    setMostrarAviso(false)
+  }
+
+  function salvarMesmoAssim() {
+    if (!confirmarRef.current || !formRef.current) return
+    confirmarRef.current.value = '1'
+    formRef.current.requestSubmit()
+  }
 
   useEffect(() => {
     if (deleteState?.success) onClose()
@@ -67,7 +109,20 @@ export default function PedidoForm({ pedido, onClose }: { pedido?: Pedido; onClo
 
   return (
     <>
-      <form id={formId} action={formAction} className="modal-fields">
+      <form
+        id={formId}
+        ref={formRef}
+        className="modal-fields"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (salvando || enviandoRef.current) return
+          enviandoRef.current = true
+          const dados = new FormData(e.currentTarget)
+          iniciarEnvio(() => formAction(dados))
+        }}
+        onChange={limparConfirmacao}
+      >
+        <input ref={confirmarRef} type="hidden" name="confirmar_duplicado" defaultValue="" />
         <div className="modal-row">
           <label>
             Data da venda
@@ -172,6 +227,7 @@ export default function PedidoForm({ pedido, onClose }: { pedido?: Pedido; onClo
         </label>
       </form>
 
+      {mostrarAviso && state?.duplicados && <AvisoPedidoDuplicado duplicados={state.duplicados} />}
       {state?.error && <p className="form-error" style={{ marginTop: 14 }}>{state.error}</p>}
       {deleteState?.error && <p className="form-error" style={{ marginTop: 14 }}>{deleteState.error}</p>}
 
@@ -187,7 +243,13 @@ export default function PedidoForm({ pedido, onClose }: { pedido?: Pedido; onClo
           <button type="button" className="btn-secondary" onClick={onClose}>
             Cancelar
           </button>
-          <SaveButton formId={formId} />
+          {mostrarAviso ? (
+            <button type="button" className="btn-primary" onClick={salvarMesmoAssim} disabled={salvando}>
+              {salvando ? 'Salvando...' : 'Salvar mesmo assim'}
+            </button>
+          ) : (
+            <SaveButton formId={formId} salvando={salvando} />
+          )}
         </div>
       </div>
     </>

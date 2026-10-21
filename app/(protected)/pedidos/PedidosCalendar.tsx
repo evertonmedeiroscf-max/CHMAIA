@@ -192,7 +192,7 @@ export default function PedidosCalendar({
         </p>
       )}
       {resumoSync && (
-        <p className="calendar-sync-result">
+        <p className={`calendar-sync-result${resumoSync.falhas > 0 ? ' calendar-sync-result-warn' : ''}`}>
           Sincronização concluída: {descreverResumo(resumoSync)}
           {resumoSync.falhas > 0 && (
             <>

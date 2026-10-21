@@ -10,8 +10,11 @@ import {
   sincronizarEventoPedido,
   sincronizarPedidosEmLote,
 } from '@/lib/google/calendar'
+import { buscarPedidosDuplicados, chaveDuplicidade, type PedidoDuplicado } from '@/lib/utils/pedidoDuplicado'
 
-export type ActionState = { error?: string; success?: boolean } | undefined
+// `duplicados` preenchido = nada foi salvo ainda: a tela mostra o aviso e, se o
+// usuário confirmar, reenvia o formulário com `confirmar_duplicado=1`.
+export type ActionState = { error?: string; success?: boolean; duplicados?: PedidoDuplicado[] } | undefined
 
 // Contagem de um envio em lote à Google Agenda (soma-se uma por lote enviado).
 export type ResumoSincronizacaoGoogle = {
@@ -52,6 +55,14 @@ export async function createPedido(_prevState: ActionState, formData: FormData):
   }
 
   const supabase = await createClient()
+
+  // Aviso de pedido em duplicidade: mesmo cliente, mesmo dia e mesma hora de
+  // um pedido que já existe. Só segue se o usuário já confirmou na tela.
+  if (formData.get('confirmar_duplicado') !== '1') {
+    const duplicados = await buscarPedidosDuplicados(supabase, parsed.data)
+    if (duplicados.length > 0) return { duplicados }
+  }
+
   const { data, error } = await supabase.from('pedidos').insert(parsed.data).select().single()
 
   if (error) return { error: error.message }
@@ -80,6 +91,22 @@ export async function updatePedido(
   }
 
   const supabase = await createClient()
+
+  // Só avisa se a edição mexeu no que define o "mesmo pedido" (cliente, dia,
+  // hora...). Editar pagamento/status de um pedido que já tem um "gêmeo" antigo
+  // não deve pedir confirmação a cada salvamento.
+  if (formData.get('confirmar_duplicado') !== '1') {
+    const { data: atual } = await supabase
+      .from('pedidos')
+      .select('cliente, data_venda, data_evento, hora_evento, valor_total')
+      .eq('id', id)
+      .maybeSingle()
+    if (!atual || chaveDuplicidade(atual) !== chaveDuplicidade(parsed.data)) {
+      const duplicados = await buscarPedidosDuplicados(supabase, parsed.data, id)
+      if (duplicados.length > 0) return { duplicados }
+    }
+  }
+
   const { data, error } = await supabase.from('pedidos').update(parsed.data).eq('id', id).select().single()
 
   if (error) return { error: error.message }
