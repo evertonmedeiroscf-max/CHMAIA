@@ -14,6 +14,7 @@ const LINKS: { href: string; label: string; pagina?: string }[] = [
   { href: '/notas-fiscais', label: 'Relatório NF' },
   { href: '/despesas', label: 'Despesas' },
   { href: '/estoque', label: 'Estoque' },
+  { href: '/fichas-tecnicas', label: 'Fichas técnicas' },
 ]
 
 export default function NavBar({

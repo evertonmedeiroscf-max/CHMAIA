@@ -191,6 +191,11 @@ export interface EstoqueItem {
   categoria: CategoriaEstoque
   unidade_medida: UnidadeMedida
   preco_corrente: number | null
+  // Fator de correção. null = sem valor (nunca assumido como 1).
+  fc: number | null
+  // true = a importação do FC não conseguiu obter a informação do arquivo de
+  // origem com clareza; a tela realça o item até alguém preencher o FC.
+  fc_sem_origem: boolean
   custo_unidade: number | null
   data_atualizacao_preco: string | null
   marca_fornecedor: string | null
@@ -201,6 +206,38 @@ export interface EstoqueItem {
   created_at: string
   updated_at: string
 }
+
+// Ficha técnica de preparo (aba "Fichas técnicas"). Hoje só existe o tipo
+// "bases" (planilha: FICHA TÉCNICA DE PREPARO - BASES). Custos e pesos
+// calculados (peso bruto, preço unitário, custo total, custo do kg) NÃO são
+// gravados — ver lib/utils/fichaTecnica.ts.
+export interface FichaTecnica {
+  id: string
+  tipo: 'bases'
+  nome: string
+  rendimento_kg: number
+  data_atualizacao: string | null
+  modo_preparo: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FichaTecnicaIngrediente {
+  id: string
+  ficha_id: string
+  ordem: number
+  estoque_item_id: string
+  observacao: string | null
+  peso_liquido: number
+  fc: number
+  medida_caseira: string | null
+}
+
+// Dados do item do Estoque que a ficha usa (unidade e Preço do Kg = preco_corrente).
+export type ItemEstoqueFicha = Pick<
+  EstoqueItem,
+  'id' | 'nome' | 'categoria' | 'unidade_medida' | 'preco_corrente'
+>
 
 export interface EstoqueMovimento {
   id: string
@@ -337,6 +374,7 @@ export const PAGINAS_SISTEMA = [
   { key: 'notas-fiscais', label: 'Relatório NF' },
   { key: 'despesas', label: 'Despesas' },
   { key: 'estoque', label: 'Estoque' },
+  { key: 'fichas-tecnicas', label: 'Fichas técnicas' },
 ] as const
 export type PaginaSistema = (typeof PAGINAS_SISTEMA)[number]['key']
 

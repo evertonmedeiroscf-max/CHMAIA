@@ -16,6 +16,7 @@ const TABELA_LABEL: Record<string, string> = {
   notas_fiscais: 'Nota fiscal',
   estoque_itens: 'Item de estoque',
   estoque_movimentos: 'Movimento de estoque',
+  fichas_tecnicas: 'Ficha técnica',
   usuarios: 'Usuário',
 }
 
@@ -27,6 +28,7 @@ const CAMPO_PRINCIPAL: Record<string, string> = {
   notas_fiscais: 'numero_nota',
   estoque_itens: 'nome',
   estoque_movimentos: 'motivo',
+  fichas_tecnicas: 'nome',
   usuarios: 'email',
 }
 

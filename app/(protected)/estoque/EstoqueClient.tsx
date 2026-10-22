@@ -16,13 +16,14 @@ import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
 
 // Ordem fixa pedida: Descrição/Item, Categoria, Unid./Medida, Preço
-// corrente, Custo/Und., Dt atualiz. preço, Marca/Fornecedor, Estoque
+// corrente, FC, Custo/Und., Dt atualiz. preço, Marca/Fornecedor, Estoque
 // mínimo, Estoque atual, Valor total em estoque, Dt atualiz. estoque.
 const COLUMN_LABELS: Record<string, string> = {
   nome: 'DESCRIÇÃO / ITEM',
   categoria: 'CATEGORIA',
   unidade_medida: 'UNID. / MEDIDA',
   preco_corrente: 'PREÇO CORRENTE',
+  fc: 'FC',
   custo_unidade: 'CUSTO / UND.',
   data_atualizacao_preco: 'DT ATUALIZ. PREÇO',
   marca_fornecedor: 'MARCA / FORNECEDOR',
@@ -37,6 +38,7 @@ const COLUMN_WIDTHS: Record<string, string> = {
   categoria: '140px',
   unidade_medida: '110px',
   preco_corrente: '120px',
+  fc: '80px',
   custo_unidade: '110px',
   data_atualizacao_preco: '130px',
   marca_fornecedor: '160px',
@@ -50,6 +52,16 @@ const DEFAULT_ORDER = Object.keys(COLUMN_LABELS)
 const ACAO_WIDTH = '120px'
 const ITENS_POR_PAGINA = 15
 
+// Valor especial do filtro de FC: itens que a importação não conseguiu obter
+// do arquivo de origem (fc_sem_origem) — assim dá pra listar só esses.
+const FC_SEM_ORIGEM = '__fc_sem_origem__'
+const TEXTO_SEM_ORIGEM = 'NÃO CONSEGUIU OBTER INFORMAÇÃO DO ARQUIVO DE ORIGEM'
+
+// FC como na planilha: 2 casas (1,00 / 1,17), mais só quando o valor tem (1,0625).
+function formatFc(valor: number) {
+  return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+}
+
 type ModalState =
   | { type: 'item'; item?: EstoqueItem }
   | { type: 'movimento'; item: EstoqueItem }
@@ -62,6 +74,7 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
   const [filtroCategoria, setFiltroCategoria] = useState<string[]>([])
   const [filtroUnidade, setFiltroUnidade] = useState<string[]>([])
   const [filtroPreco, setFiltroPreco] = useState<string[]>([])
+  const [filtroFc, setFiltroFc] = useState<string[]>([])
   const [filtroCusto, setFiltroCusto] = useState<string[]>([])
   const [filtroDtPrecoInicio, setFiltroDtPrecoInicio] = useState('')
   const [filtroDtPrecoFim, setFiltroDtPrecoFim] = useState('')
@@ -86,6 +99,12 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
         .filter((item) => !filtroCategoria.length || filtroCategoria.includes(item.categoria))
         .filter((item) => !filtroUnidade.length || filtroUnidade.includes(item.unidade_medida))
         .filter((item) => !filtroPreco.length || filtroPreco.includes(String(item.preco_corrente ?? '')))
+        .filter(
+          (item) =>
+            !filtroFc.length ||
+            (item.fc_sem_origem && filtroFc.includes(FC_SEM_ORIGEM)) ||
+            (item.fc != null && filtroFc.includes(String(item.fc)))
+        )
         .filter((item) => !filtroCusto.length || filtroCusto.includes(String(item.custo_unidade ?? '')))
         .filter((item) => !filtroDtPrecoInicio || (item.data_atualizacao_preco ?? '') >= filtroDtPrecoInicio)
         .filter((item) => !filtroDtPrecoFim || (!!item.data_atualizacao_preco && item.data_atualizacao_preco <= filtroDtPrecoFim))
@@ -101,6 +120,7 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
       filtroCategoria,
       filtroUnidade,
       filtroPreco,
+      filtroFc,
       filtroCusto,
       filtroDtPrecoInicio,
       filtroDtPrecoFim,
@@ -129,6 +149,13 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
 
   const opcoesNome = useMemo(() => opcoesTexto((i) => i.nome), [itens])
   const opcoesPreco = useMemo(() => opcoesNumero((i) => i.preco_corrente, formatCurrency), [itens])
+  const opcoesFc = useMemo(() => {
+    const valores = opcoesNumero((i) => i.fc, formatFc)
+    // A opção "sem informação na origem" só aparece se existir algum item assim.
+    return itens.some((i) => i.fc_sem_origem)
+      ? [{ value: FC_SEM_ORIGEM, label: 'Sem informação na origem' }, ...valores]
+      : valores
+  }, [itens])
   const opcoesCusto = useMemo(() => opcoesNumero((i) => i.custo_unidade, formatCurrency), [itens])
   const opcoesMarca = useMemo(() => opcoesTexto((i) => i.marca_fornecedor), [itens])
   const opcoesMinimo = useMemo(() => opcoesNumero((i) => i.quantidade_minima, (v) => String(v)), [itens])
@@ -167,6 +194,7 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
       filter: { options: UNIDADES_MEDIDA.map((u) => ({ value: u, label: u })), selected: filtroUnidade, onChange: setFiltroUnidade },
     },
     { key: 'preco_corrente', label: COLUMN_LABELS.preco_corrente, filter: { options: opcoesPreco, selected: filtroPreco, onChange: setFiltroPreco } },
+    { key: 'fc', label: COLUMN_LABELS.fc, filter: { options: opcoesFc, selected: filtroFc, onChange: setFiltroFc } },
     { key: 'custo_unidade', label: COLUMN_LABELS.custo_unidade, filter: { options: opcoesCusto, selected: filtroCusto, onChange: setFiltroCusto } },
     {
       key: 'data_atualizacao_preco',
@@ -205,6 +233,7 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
           <div className="text-strong">
             <Link href={`/estoque/${item.id}`}>{item.nome}</Link>
             {isLow && <span className="low-stock-flag">ESTOQUE BAIXO</span>}
+            {item.fc_sem_origem && <div className="sem-origem-flag">{TEXTO_SEM_ORIGEM}</div>}
           </div>
         )
       case 'categoria':
@@ -213,6 +242,9 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
         return <div className="col-center text-muted">{item.unidade_medida}</div>
       case 'preco_corrente':
         return <div className="col-center text-muted">{item.preco_corrente != null ? formatCurrency(item.preco_corrente) : '-'}</div>
+      case 'fc':
+        // Em branco quando não há FC (inclusive nos itens "sem informação na origem").
+        return <div className="col-center text-muted">{item.fc != null ? formatFc(item.fc) : '-'}</div>
       case 'custo_unidade':
         return <div className="col-center text-muted">{item.custo_unidade != null ? formatCurrency(item.custo_unidade) : '-'}</div>
       case 'data_atualizacao_preco':
@@ -282,7 +314,11 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
         {itensPaginados.map((item) => {
           const isLow = item.quantidade_atual < item.quantidade_minima
           return (
-            <div key={item.id} className={`table-row${isLow ? ' row-alert' : ''}`} style={{ gridTemplateColumns: gridTemplate, minWidth }}>
+            <div
+              key={item.id}
+              className={`table-row${isLow ? ' row-alert' : ''}${item.fc_sem_origem ? ' row-sem-origem' : ''}`}
+              style={{ gridTemplateColumns: gridTemplate, minWidth }}
+            >
               {visibleOrder.map((key) => cloneElement(renderCell(key, item), { key }))}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                 <button type="button" className="action-link primary" onClick={() => setModal({ type: 'movimento', item })}>

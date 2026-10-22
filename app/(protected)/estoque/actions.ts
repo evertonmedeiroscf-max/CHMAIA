@@ -12,6 +12,7 @@ export async function createEstoqueItem(_prevState: ActionState, formData: FormD
     categoria: formData.get('categoria'),
     unidade_medida: formData.get('unidade_medida'),
     preco_corrente: formData.get('preco_corrente') || null,
+    fc: formData.get('fc') || null,
     custo_unidade: formData.get('custo_unidade') || null,
     marca_fornecedor: formData.get('marca_fornecedor') || null,
     quantidade_atual: formData.get('quantidade_atual') || 0,
@@ -37,6 +38,7 @@ export async function updateEstoqueItem(
     categoria: formData.get('categoria'),
     unidade_medida: formData.get('unidade_medida'),
     preco_corrente: formData.get('preco_corrente') || null,
+    fc: formData.get('fc') || null,
     custo_unidade: formData.get('custo_unidade') || null,
     marca_fornecedor: formData.get('marca_fornecedor') || null,
     quantidade_atual: formData.get('quantidade_atual') || 0,
@@ -59,7 +61,10 @@ export async function updateEstoqueItem(
     .single()
   if (erroLeitura) return { error: erroLeitura.message }
 
-  const { error } = await supabase.from('estoque_itens').update(dadosItem).eq('id', id)
+  // Preencher o FC à mão resolve a marca "não obteve do arquivo de origem" da
+  // importação — o item deixa de ser realçado.
+  const atualizacao = dadosItem.fc != null ? { ...dadosItem, fc_sem_origem: false } : dadosItem
+  const { error } = await supabase.from('estoque_itens').update(atualizacao).eq('id', id)
   if (error) return { error: error.message }
 
   const diferenca = novaQuantidade - itemAtual.quantidade_atual
@@ -82,7 +87,13 @@ export async function updateEstoqueItem(
 export async function deleteEstoqueItem(_id: string, _prevState: ActionState): Promise<ActionState> {
   const supabase = await createClient()
   const { error } = await supabase.from('estoque_itens').delete().eq('id', _id)
-  if (error) return { error: error.message }
+  if (error) {
+    // O item está como ingrediente em alguma ficha técnica (FK "restrict").
+    if (error.message.includes('fichas_tecnicas_ingredientes')) {
+      return { error: 'Este item é usado como ingrediente em fichas técnicas e não pode ser excluído. Tire-o das fichas antes.' }
+    }
+    return { error: error.message }
+  }
   revalidatePath('/estoque')
   return { success: true }
 }

@@ -14,6 +14,8 @@ export const estoqueItemSchema = z.object({
   categoria: z.enum(CATEGORIAS_ESTOQUE),
   unidade_medida: z.enum(UNIDADES_MEDIDA),
   preco_corrente: z.coerce.number().nonnegative('Preço não pode ser negativo').nullable().optional(),
+  // FC em branco fica null (o sistema nunca assume 1); se preenchido, > 0.
+  fc: z.coerce.number().positive('O FC deve ser maior que zero').nullable().optional(),
   custo_unidade: z.coerce.number().nonnegative('Custo não pode ser negativo').nullable().optional(),
   marca_fornecedor: z.string().trim().toUpperCase().nullable().optional(),
   quantidade_atual: z.coerce.number().nonnegative('Quantidade atual não pode ser negativa'),

@@ -193,6 +193,8 @@ export interface Database {
           categoria: string
           unidade_medida: string
           preco_corrente: number | null
+          fc: number | null
+          fc_sem_origem: boolean
           custo_unidade: number | null
           data_atualizacao_preco: string | null
           marca_fornecedor: string | null
@@ -209,6 +211,8 @@ export interface Database {
           categoria: string
           unidade_medida: string
           preco_corrente?: number | null
+          fc?: number | null
+          fc_sem_origem?: boolean
           custo_unidade?: number | null
           marca_fornecedor?: string | null
           quantidade_atual?: number
@@ -334,6 +338,71 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['estoque_apelidos']['Insert']>
         Relationships: []
+      }
+      fichas_tecnicas: {
+        Row: {
+          id: string
+          tipo: string
+          nome: string
+          rendimento_kg: number
+          data_atualizacao: string | null
+          modo_preparo: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tipo?: string
+          nome: string
+          rendimento_kg: number
+          data_atualizacao?: string | null
+          modo_preparo?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['fichas_tecnicas']['Insert']>
+        Relationships: []
+      }
+      fichas_tecnicas_ingredientes: {
+        Row: {
+          id: string
+          ficha_id: string
+          ordem: number
+          estoque_item_id: string
+          observacao: string | null
+          peso_liquido: number
+          fc: number
+          medida_caseira: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          ficha_id: string
+          ordem: number
+          estoque_item_id: string
+          observacao?: string | null
+          peso_liquido: number
+          fc?: number
+          medida_caseira?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['fichas_tecnicas_ingredientes']['Insert']>
+        Relationships: [
+          {
+            foreignKeyName: 'fichas_tecnicas_ingredientes_ficha_id_fkey'
+            columns: ['ficha_id']
+            referencedRelation: 'fichas_tecnicas'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'fichas_tecnicas_ingredientes_estoque_item_id_fkey'
+            columns: ['estoque_item_id']
+            referencedRelation: 'estoque_itens'
+            referencedColumns: ['id']
+          },
+        ]
       }
       notas_fiscais: {
         Row: {

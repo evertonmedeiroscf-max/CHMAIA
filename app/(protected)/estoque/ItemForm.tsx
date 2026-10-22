@@ -74,10 +74,20 @@ export default function ItemForm({ item, onClose }: { item?: EstoqueItem; onClos
             <input type="number" name="preco_corrente" step="0.01" min="0" defaultValue={item?.preco_corrente ?? ''} />
           </label>
           <label>
+            FC
+            <input type="number" name="fc" step="any" min="0" placeholder="Ex: 1,25" defaultValue={item?.fc ?? ''} />
+          </label>
+          <label>
             Custo / und. (R$)
             <input type="number" name="custo_unidade" step="0.01" min="0" defaultValue={item?.custo_unidade ?? ''} />
           </label>
         </div>
+        {item?.fc_sem_origem && (
+          <p className="form-info">
+            Não conseguiu obter informação do arquivo de origem: o FC deste item ficou em branco na importação. Preencha
+            o FC acima para tirar o realce.
+          </p>
+        )}
         <label>
           Marca / Fornecedor
           <input
