@@ -1,29 +1,17 @@
 import { notFound } from 'next/navigation'
 import { exigirAcesso } from '@/lib/supabase/acesso'
-import type { FichaTecnica, FichaTecnicaIngrediente } from '@/lib/types/domain'
-import { carregarItensEstoque } from '../dados'
-import FichaEditor from '../FichaEditor'
+import { carregarDadosFichas } from '../dados'
+import FichaVisualizacao from '../FichaVisualizacao'
+import { montarLinhasVisuais } from '../visual'
 
-export default async function EditarFichaTecnicaPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function FichaTecnicaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await exigirAcesso('fichas-tecnicas')
+  const { fichas, linhas, itens, resumos } = await carregarDadosFichas(supabase)
 
-  const { data: ficha } = await supabase.from('fichas_tecnicas').select('*').eq('id', id).maybeSingle()
-  if (!ficha) notFound()
+  const ficha = fichas.find((f) => f.id === id)
+  const resumo = resumos.get(id)
+  if (!ficha || !resumo) notFound()
 
-  const { data: ingredientes } = await supabase
-    .from('fichas_tecnicas_ingredientes')
-    .select('*')
-    .eq('ficha_id', id)
-    .order('ordem', { ascending: true })
-
-  const itens = await carregarItensEstoque(supabase)
-
-  return (
-    <FichaEditor
-      ficha={ficha as FichaTecnica}
-      ingredientes={(ingredientes ?? []) as FichaTecnicaIngrediente[]}
-      itens={itens}
-    />
-  )
+  return <FichaVisualizacao ficha={ficha} resumo={resumo} linhas={montarLinhasVisuais(id, linhas, itens, fichas, resumos)} />
 }

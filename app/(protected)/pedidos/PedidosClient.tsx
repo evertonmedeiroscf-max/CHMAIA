@@ -1,6 +1,6 @@
 'use client'
 
-import { cloneElement, useEffect, useMemo, useState } from 'react'
+import { cloneElement, useMemo, useState } from 'react'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
@@ -11,6 +11,7 @@ import { ENTIDADE_LABEL, ENTIDADE_TIPOS, STATUS_PEDIDO, type FormaPagamento, typ
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
+import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
 import { updateDataPagamentoPedido, updateFormaPagamentoPedido } from './actions'
 
 type ViewMode = 'lista' | 'calendario'
@@ -200,13 +201,33 @@ export default function PedidosClient({
     filtroStatus,
   ])
 
-  // Volta pra primeira página sempre que o filtro muda o conjunto de
-  // resultados — sem isso, dava pra ficar "preso" numa página vazia.
-  useEffect(() => {
-    setPaginaAtual(1)
-  }, [pedidosFiltrados])
-
   const totalPaginas = Math.max(1, Math.ceil(pedidosFiltrados.length / ITENS_POR_PAGINA))
+  // Volta pra página 1 só quando um filtro muda — editar um pedido não tira o
+  // usuário da página em que ele estava (ver useAjustarPagina).
+  useAjustarPagina({
+    paginaAtual,
+    setPaginaAtual,
+    totalPaginas,
+    filtros: [
+      filtroNumero,
+      filtroDataInicio,
+      filtroDataFim,
+      filtroDataEventoInicio,
+      filtroDataEventoFim,
+      filtroHoraEvento,
+      filtroCliente,
+      filtroValorTotal,
+      filtroValorPago,
+      filtroFaltaPagar,
+      filtroNota,
+      filtroEntidade,
+      filtroFormaPagamento,
+      filtroBanco,
+      filtroDataPagamentoInicio,
+      filtroDataPagamentoFim,
+      filtroStatus,
+    ],
+  })
   const pedidosPaginados = useMemo(
     () => pedidosFiltrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
     [pedidosFiltrados, paginaAtual]

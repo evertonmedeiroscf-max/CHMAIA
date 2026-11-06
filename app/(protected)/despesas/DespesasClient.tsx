@@ -1,6 +1,6 @@
 'use client'
 
-import { cloneElement, useEffect, useMemo, useState } from 'react'
+import { cloneElement, useMemo, useState } from 'react'
 import Link from 'next/link'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
@@ -13,6 +13,7 @@ import { CATEGORIAS_DESPESA, type Despesa, type FormaPagamento } from '@/lib/typ
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
+import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
 
 const COLUMN_LABELS: Record<string, string> = {
   data: 'DATA',
@@ -81,11 +82,15 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
       .sort((a, b) => b.data.localeCompare(a.data))
   }, [despesas, filtroDataInicio, filtroDataFim, filtroDescricao, filtroCategoria, filtroFormaPagamento, filtroValor])
 
-  useEffect(() => {
-    setPaginaAtual(1)
-  }, [despesasFiltradas])
-
   const totalPaginas = Math.max(1, Math.ceil(despesasFiltradas.length / ITENS_POR_PAGINA))
+  // Volta pra página 1 só quando um filtro muda — editar uma despesa não tira o
+  // usuário da página em que ele estava (ver useAjustarPagina).
+  useAjustarPagina({
+    paginaAtual,
+    setPaginaAtual,
+    totalPaginas,
+    filtros: [filtroDataInicio, filtroDataFim, filtroDescricao, filtroCategoria, filtroFormaPagamento, filtroValor],
+  })
   const despesasPaginadas = useMemo(
     () => despesasFiltradas.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
     [despesasFiltradas, paginaAtual]

@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
 import Pagination from '@/components/Pagination'
 import { PAGINAS_SISTEMA, type TipoUsuario, type Usuario } from '@/lib/types/domain'
 import { formatDateBR } from '@/lib/utils/format'
@@ -27,11 +28,10 @@ export default function UsuariosClient({
     })
   }, [usuarios, filtro])
 
-  useEffect(() => {
-    setPaginaAtual(1)
-  }, [usuariosFiltrados])
-
   const totalPaginas = Math.max(1, Math.ceil(usuariosFiltrados.length / ITENS_POR_PAGINA))
+  // Volta pra página 1 só quando o filtro muda — aprovar/editar um usuário não
+  // tira ninguém da página em que estava (ver useAjustarPagina).
+  useAjustarPagina({ paginaAtual, setPaginaAtual, totalPaginas, filtros: [filtro] })
   const usuariosPaginados = useMemo(
     () => usuariosFiltrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
     [usuariosFiltrados, paginaAtual]

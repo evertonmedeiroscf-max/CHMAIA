@@ -3,51 +3,76 @@
 import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { FichaTecnica, FichaTecnicaIngrediente, ItemEstoqueFicha } from '@/lib/types/domain'
+import { TIPO_FICHA_LABEL, type FichaTecnica, type FichaTecnicaIngrediente, type ItemEstoqueFicha, type TipoFicha } from '@/lib/types/domain'
 import { formatCurrency } from '@/lib/utils/format'
-import { calcularFicha, formatNumero, pesoBruto, precoUnitario } from '@/lib/utils/fichaTecnica'
+import { calcularFicha, formatNumero, pesoBruto, precoUnitario, type LinhaCalculo } from '@/lib/utils/fichaTecnica'
 import { MAX_INGREDIENTES_FICHA } from '@/lib/validations/fichaTecnica'
-import EstoqueItemPicker from './EstoqueItemPicker'
+import FichaCabecalho from './FichaCabecalho'
+import { TEXTO_SEM_ORIGEM } from './visual'
+import IngredientePicker, { type OpcaoIngrediente } from './IngredientePicker'
 import { excluirFichaTecnica, salvarFichaTecnica } from './actions'
+
+// Ficha de Base que pode ser usada como ingrediente (o custo é o custo/kg dela).
+export type BaseOpcao = { id: string; nome: string; custoKg: number | null; incompleta: boolean }
 
 type LinhaForm = {
   chave: number
   id: string | null
-  estoque_item_id: string
+  // "e:<id do item do Estoque>" | "f:<id da ficha de Base>" | "" (nenhum)
+  alvo: string
+  // A importação não conseguiu associar este ingrediente (continua assim até escolher um).
+  semOrigem: boolean
+  origem: string | null
+  motivo: string | null
+  // Peso que veio vazio do arquivo de origem (não exigir peso só por isso).
+  pesoOriginalNulo: boolean
   observacao: string
-  peso_liquido: string
+  peso: string
   fc: string
-  medida_caseira: string
+  medida: string
 }
 
 const LINHAS_INICIAIS_FICHA_NOVA = 3
 
-function numero(texto: string): number {
+function numeroOuNulo(texto: string): number | null {
+  if (texto.trim() === '') return null
   const n = Number(texto.replace(',', '.'))
-  return Number.isFinite(n) ? n : 0
+  return Number.isFinite(n) ? n : null
 }
 
 // Linha totalmente em branco (só o FC padrão "1"): é ignorada ao salvar, como as
-// linhas vazias da planilha.
+// linhas vazias da planilha. Linha "sem origem" nunca é considerada vazia.
 function linhaVazia(l: LinhaForm) {
-  return !l.estoque_item_id && !l.observacao.trim() && !l.peso_liquido.trim() && !l.medida_caseira.trim()
+  return !l.alvo && !l.semOrigem && !l.observacao.trim() && !l.peso.trim() && !l.medida.trim()
+}
+
+function novaLinha(chave: number): LinhaForm {
+  return { chave, id: null, alvo: '', semOrigem: false, origem: null, motivo: null, pesoOriginalNulo: false, observacao: '', peso: '', fc: '1', medida: '' }
 }
 
 export default function FichaEditor({
   ficha,
+  tipoNovo,
   ingredientes,
   itens,
+  bases,
 }: {
   ficha?: FichaTecnica
+  tipoNovo?: TipoFicha
   ingredientes: FichaTecnicaIngrediente[]
   itens: ItemEstoqueFicha[]
+  bases: BaseOpcao[]
 }) {
   const router = useRouter()
+  const tipo: TipoFicha = ficha?.tipo ?? tipoNovo ?? 'bases'
+  const ehBase = tipo === 'bases'
   const proximaChave = useRef(0)
   const novaChave = () => ++proximaChave.current
 
   const [nome, setNome] = useState(ficha?.nome ?? '')
-  const [rendimento, setRendimento] = useState(ficha ? String(ficha.rendimento_kg) : '')
+  const [rendimento, setRendimento] = useState(ficha?.rendimento_kg != null ? String(ficha.rendimento_kg) : '')
+  const [markup, setMarkup] = useState(ficha?.markup != null ? String(ficha.markup) : '')
+  const [serve, setServe] = useState(ficha?.serve != null ? String(ficha.serve) : '')
   const [dataAtualizacao, setDataAtualizacao] = useState(ficha?.data_atualizacao ?? '')
   const [modoPreparo, setModoPreparo] = useState(ficha?.modo_preparo ?? '')
   const [linhas, setLinhas] = useState<LinhaForm[]>(() =>
@@ -55,36 +80,52 @@ export default function FichaEditor({
       ? ingredientes.map((i) => ({
           chave: novaChave(),
           id: i.id,
-          estoque_item_id: i.estoque_item_id,
+          alvo: i.estoque_item_id ? `e:${i.estoque_item_id}` : i.ficha_ingrediente_id ? `f:${i.ficha_ingrediente_id}` : '',
+          semOrigem: i.sem_origem,
+          origem: i.ingrediente_origem,
+          motivo: i.sem_origem_motivo,
+          pesoOriginalNulo: i.peso_liquido === null,
           observacao: i.observacao ?? '',
-          peso_liquido: String(i.peso_liquido),
-          fc: String(i.fc),
-          medida_caseira: i.medida_caseira ?? '',
+          peso: i.peso_liquido !== null ? String(i.peso_liquido) : '',
+          fc: i.fc !== null ? String(i.fc) : '',
+          medida: i.medida_caseira ?? '',
         }))
-      : Array.from({ length: LINHAS_INICIAIS_FICHA_NOVA }, () => ({
-          chave: novaChave(),
-          id: null,
-          estoque_item_id: '',
-          observacao: '',
-          peso_liquido: '',
-          fc: '1',
-          medida_caseira: '',
-        }))
+      : Array.from({ length: LINHAS_INICIAIS_FICHA_NOVA }, () => novaLinha(novaChave()))
   )
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
   const enviandoRef = useRef(false)
 
-  const itemPorId = useMemo(() => new Map(itens.map((i) => [i.id, i])), [itens])
+  // Opções do seletor: itens do Estoque + fichas de Base (menos a própria ficha).
+  const { opcoes, infoPorChave } = useMemo(() => {
+    const lista: OpcaoIngrediente[] = []
+    const info = new Map<string, { unidade: string; preco: number | null; parcial: boolean }>()
+    for (const i of itens) {
+      const chave = `e:${i.id}`
+      lista.push({
+        chave,
+        nome: i.nome,
+        detalhe: `${i.categoria} · ${i.unidade_medida} · ${i.preco_corrente !== null ? formatCurrency(i.preco_corrente) : 'sem preço'}`,
+      })
+      info.set(chave, { unidade: i.unidade_medida, preco: i.preco_corrente, parcial: false })
+    }
+    for (const b of bases) {
+      if (b.id === ficha?.id) continue
+      const chave = `f:${b.id}`
+      lista.push({ chave, nome: b.nome, detalhe: `Ficha de Base · custo/kg ${b.custoKg !== null ? formatCurrency(b.custoKg) : 'indisponível'}` })
+      info.set(chave, { unidade: 'KG', preco: b.custoKg, parcial: b.incompleta })
+    }
+    return { opcoes: lista, infoPorChave: info }
+  }, [itens, bases, ficha?.id])
 
   const calculadas = linhas.map((l) => {
-    const item = itemPorId.get(l.estoque_item_id)
-    const base = { peso_liquido: numero(l.peso_liquido), fc: numero(l.fc), preco_kg: item ? item.preco_corrente : null }
-    return { item, bruto: pesoBruto(base), unit: item ? precoUnitario(base) : null, base }
+    const info = l.alvo ? infoPorChave.get(l.alvo) : undefined
+    const base: LinhaCalculo = { peso_liquido: numeroOuNulo(l.peso), fc: numeroOuNulo(l.fc), preco_kg: info?.preco ?? null, parcial: info?.parcial }
+    return { info, base, bruto: pesoBruto(base), unit: info ? precoUnitario(base) : null }
   })
   const resumo = calcularFicha(
-    linhas.flatMap((l, i) => (l.estoque_item_id ? [calculadas[i].base] : [])),
-    numero(rendimento)
+    linhas.flatMap((l, i) => (linhaVazia(l) ? [] : [calculadas[i].base])),
+    { rendimentoKg: numeroOuNulo(rendimento), markup: numeroOuNulo(markup), serve: numeroOuNulo(serve) }
   )
 
   function atualizar(chave: number, campos: Partial<LinhaForm>) {
@@ -92,11 +133,7 @@ export default function FichaEditor({
   }
 
   function adicionarLinha() {
-    setLinhas((atuais) =>
-      atuais.length >= MAX_INGREDIENTES_FICHA
-        ? atuais
-        : [...atuais, { chave: novaChave(), id: null, estoque_item_id: '', observacao: '', peso_liquido: '', fc: '1', medida_caseira: '' }]
-    )
+    setLinhas((atuais) => (atuais.length >= MAX_INGREDIENTES_FICHA ? atuais : [...atuais, novaLinha(novaChave())]))
   }
 
   function removerLinha(chave: number) {
@@ -109,14 +146,13 @@ export default function FichaEditor({
     setErro('')
 
     const preenchidas = linhas.filter((l) => !linhaVazia(l))
-    if (preenchidas.some((l) => !l.estoque_item_id)) {
+    if (preenchidas.some((l) => !l.alvo && !l.semOrigem)) {
       setErro('Escolha o ingrediente em todas as linhas preenchidas (ou apague as linhas em branco).')
       return
     }
-
-    const semPeso = preenchidas.find((l) => l.peso_liquido.trim() === '')
+    const semPeso = preenchidas.find((l) => l.alvo && l.peso.trim() === '' && !l.pesoOriginalNulo)
     if (semPeso) {
-      setErro(`Informe o peso líquido de ${itemPorId.get(semPeso.estoque_item_id)?.nome ?? 'todos os ingredientes'}.`)
+      setErro(`Informe o peso líquido de ${opcoes.find((o) => o.chave === semPeso.alvo)?.nome ?? 'todos os ingredientes'}.`)
       return
     }
 
@@ -124,24 +160,32 @@ export default function FichaEditor({
     setSalvando(true)
     try {
       const resultado = await salvarFichaTecnica(ficha?.id ?? null, {
+        tipo,
         nome,
-        rendimento_kg: rendimento,
+        rendimento_kg: ehBase ? rendimento : null,
+        markup: ehBase ? null : markup,
+        serve: ehBase ? null : serve,
         data_atualizacao: dataAtualizacao || null,
         modo_preparo: modoPreparo || null,
         ingredientes: preenchidas.map((l) => ({
           id: l.id,
-          estoque_item_id: l.estoque_item_id,
+          estoque_item_id: l.alvo.startsWith('e:') ? l.alvo.slice(2) : null,
+          ficha_ingrediente_id: l.alvo.startsWith('f:') ? l.alvo.slice(2) : null,
+          ingrediente_origem: l.origem,
+          sem_origem: !l.alvo && l.semOrigem,
+          sem_origem_motivo: l.motivo,
           observacao: l.observacao,
-          peso_liquido: l.peso_liquido,
+          peso_liquido: l.peso,
           fc: l.fc,
-          medida_caseira: l.medida_caseira,
+          medida_caseira: l.medida,
         })),
       })
       if ('error' in resultado) {
         setErro(resultado.error)
         return
       }
-      router.push('/fichas-tecnicas')
+      // Depois de salvar, fica na própria ficha (visualização), não volta pro índice.
+      router.push(`/fichas-tecnicas/${resultado.id}`)
       router.refresh()
     } catch {
       setErro('Não foi possível salvar a ficha. Confira a conexão e tente novamente.')
@@ -173,57 +217,80 @@ export default function FichaEditor({
     }
   }
 
+  const voltarPara = ficha ? `/fichas-tecnicas/${ficha.id}` : '/fichas-tecnicas'
+
   return (
     <div>
       <div className="page-header">
-        <h1>{ficha ? 'Editar ficha técnica' : 'Nova ficha técnica'}</h1>
-        <Link href="/fichas-tecnicas" className="btn-secondary">
-          ← Voltar para Fichas técnicas
+        <h1>{ficha ? 'Editar ficha técnica' : `Nova ${TIPO_FICHA_LABEL[tipo].toLowerCase()}`}</h1>
+        <Link href={voltarPara} className="btn-secondary">
+          ← Voltar
         </Link>
       </div>
 
       <form className="ficha" onSubmit={handleSalvar}>
-        <div className="ficha-barra">CHEF HILANA MAIA GASTRONOMIA</div>
-        <div className="ficha-barra">FICHA TÉCNICA DE PREPARO - BASES</div>
-        <div className="ficha-barra ficha-barra-nome">
-          <input
-            type="text"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            placeholder="NOME DA RECEITA"
-            aria-label="Nome da receita"
-            required
-          />
-        </div>
+        <FichaCabecalho
+          tipo={tipo}
+          nome={
+            <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="NOME DA RECEITA" aria-label="Nome da receita" required />
+          }
+        />
 
         <div className="ficha-resumo">
           <div className="ficha-resumo-linha">
             <span className="ficha-data-rotulo">DATA ATUALIZAÇÃO:</span>
             <input type="date" value={dataAtualizacao} onChange={(e) => setDataAtualizacao(e.target.value)} aria-label="Data de atualização" />
           </div>
-          <div className="ficha-resumo-linha">
-            <span>Rendimento total da receita</span>
-            <span className="ficha-resumo-valor">
-              <input
-                type="number"
-                step="any"
-                min="0"
-                value={rendimento}
-                onChange={(e) => setRendimento(e.target.value)}
-                aria-label="Rendimento total em kg"
-                required
-              />{' '}
-              Kg
-            </span>
-          </div>
-          <div className="ficha-resumo-linha">
-            <span>Custo total da receita</span>
-            <span className="ficha-resumo-valor">{formatCurrency(resumo.custoTotal)}</span>
-          </div>
-          <div className="ficha-resumo-linha">
-            <span>Custo do kg</span>
-            <span className="ficha-resumo-valor">{resumo.custoKg !== null ? formatCurrency(resumo.custoKg) : '-'}</span>
-          </div>
+          {ehBase ? (
+            <>
+              <div className="ficha-resumo-linha">
+                <span>Rendimento total da receita</span>
+                <span className="ficha-resumo-valor">
+                  <input type="number" step="any" min="0" value={rendimento} onChange={(e) => setRendimento(e.target.value)} aria-label="Rendimento total em kg" required />{' '}
+                  Kg
+                </span>
+              </div>
+              <div className="ficha-resumo-linha">
+                <span>Custo total da receita</span>
+                <span className="ficha-resumo-valor">{formatCurrency(resumo.custoTotal)}</span>
+              </div>
+              <div className="ficha-resumo-linha">
+                <span>Custo do kg</span>
+                <span className="ficha-resumo-valor">{resumo.custoKg !== null ? formatCurrency(resumo.custoKg) : '-'}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="ficha-resumo-linha">
+                <span>Custo do prato</span>
+                <span className="ficha-resumo-valor">{formatCurrency(resumo.custoTotal)}</span>
+              </div>
+              <div className="ficha-resumo-linha">
+                <span>Markup</span>
+                <span className="ficha-resumo-valor">
+                  <input type="number" step="any" min="0" value={markup} onChange={(e) => setMarkup(e.target.value)} aria-label="Markup" />
+                </span>
+              </div>
+              <div className="ficha-resumo-linha">
+                <span>Preço sugerido</span>
+                <span className="ficha-resumo-valor">{resumo.precoSugerido !== null ? formatCurrency(resumo.precoSugerido) : '-'}</span>
+              </div>
+              <div className="ficha-resumo-linha">
+                <span>Serve</span>
+                <span className="ficha-resumo-valor">
+                  <input type="number" step="any" min="0" value={serve} onChange={(e) => setServe(e.target.value)} aria-label="Serve (porções)" />
+                </span>
+              </div>
+              <div className="ficha-resumo-linha">
+                <span>Peso aproximado</span>
+                <span className="ficha-resumo-valor">{formatNumero(resumo.pesoAproximado, 3)} Kg</span>
+              </div>
+              <div className="ficha-resumo-linha">
+                <span>Peso per capita</span>
+                <span className="ficha-resumo-valor">{resumo.pesoPerCapita !== null ? `${formatNumero(resumo.pesoPerCapita, 3)} Kg` : '-'}</span>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="ficha-tabela">
@@ -242,46 +309,28 @@ export default function FichaEditor({
 
           {linhas.map((l, i) => {
             const c = calculadas[i]
-            const semPreco = !!c.item && c.item.preco_corrente === null
+            const pendente = l.semOrigem && !l.alvo
+            const semPreco = !!c.info && c.info.preco === null
             return (
-              <div key={l.chave} className="ficha-grade ficha-linha">
-                <EstoqueItemPicker
-                  itens={itens}
-                  valor={l.estoque_item_id}
-                  onChange={(itemId) => atualizar(l.chave, { estoque_item_id: itemId })}
-                />
-                <input
-                  type="text"
-                  value={l.observacao}
-                  onChange={(e) => atualizar(l.chave, { observacao: e.target.value })}
-                  aria-label="Observações"
-                />
-                <div className="ficha-calc">{c.item?.unidade_medida ?? ''}</div>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={l.peso_liquido}
-                  onChange={(e) => atualizar(l.chave, { peso_liquido: e.target.value })}
-                  aria-label="Peso líquido"
-                />
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={l.fc}
-                  onChange={(e) => atualizar(l.chave, { fc: e.target.value })}
-                  aria-label="FC"
-                />
-                <div className="ficha-calc">{c.item ? formatNumero(c.bruto, 3) : ''}</div>
-                <input
-                  type="text"
-                  value={l.medida_caseira}
-                  onChange={(e) => atualizar(l.chave, { medida_caseira: e.target.value })}
-                  aria-label="Medida caseira"
-                />
+              <div key={l.chave} className={`ficha-grade ficha-linha${pendente ? ' ficha-linha-sem-origem' : ''}`}>
+                <div className="ficha-ingrediente">
+                  <IngredientePicker opcoes={opcoes} valor={l.alvo} onChange={(chave) => atualizar(l.chave, { alvo: chave })} invalido={pendente} />
+                  {pendente && (
+                    <>
+                      <div className="ficha-sem-origem-texto">{TEXTO_SEM_ORIGEM}</div>
+                      {l.origem && <div className="ficha-origem-ref">no arquivo: {l.origem}</div>}
+                      {l.motivo && <div className="ficha-origem-ref">{l.motivo}</div>}
+                    </>
+                  )}
+                </div>
+                <input type="text" value={l.observacao} onChange={(e) => atualizar(l.chave, { observacao: e.target.value })} aria-label="Observações" />
+                <div className="ficha-calc">{c.info?.unidade ?? ''}</div>
+                <input type="number" step="any" min="0" value={l.peso} onChange={(e) => atualizar(l.chave, { peso: e.target.value })} aria-label="Peso líquido" />
+                <input type="number" step="any" min="0" value={l.fc} onChange={(e) => atualizar(l.chave, { fc: e.target.value })} aria-label="FC" />
+                <div className="ficha-calc">{c.info && c.bruto !== null ? formatNumero(c.bruto, 3) : ''}</div>
+                <input type="text" value={l.medida} onChange={(e) => atualizar(l.chave, { medida: e.target.value })} aria-label="Medida caseira" />
                 <div className={`ficha-calc${semPreco ? ' ficha-sem-preco' : ''}`}>
-                  {c.item ? (c.item.preco_corrente !== null ? formatCurrency(c.item.preco_corrente) : 'sem preço') : ''}
+                  {c.info ? (c.info.preco !== null ? formatCurrency(c.info.preco) : 'sem preço') : ''}
                 </div>
                 <div className="ficha-calc">{c.unit !== null ? formatCurrency(c.unit) : ''}</div>
                 <button type="button" className="ficha-remover" onClick={() => removerLinha(l.chave)} aria-label="Remover ingrediente" title="Remover ingrediente">
@@ -296,24 +345,22 @@ export default function FichaEditor({
           <button type="button" className="btn-secondary" onClick={adicionarLinha} disabled={linhas.length >= MAX_INGREDIENTES_FICHA}>
             + Adicionar ingrediente
           </button>
-          {resumo.semPreco > 0 && (
+          {resumo.incompletas > 0 && (
             <span className="form-info">
-              {resumo.semPreco === 1 ? '1 ingrediente está' : `${resumo.semPreco} ingredientes estão`} sem preço no Estoque — o custo
+              {resumo.incompletas === 1 ? '1 linha está' : `${resumo.incompletas} linhas estão`} incompleta(s) (sem ingrediente, preço, peso ou FC) — o custo
               mostrado é parcial.
             </span>
           )}
         </div>
 
         <div className="ficha-barra">MODO DE PREPARO:</div>
-        <textarea
-          className="ficha-modo"
-          value={modoPreparo}
-          onChange={(e) => setModoPreparo(e.target.value)}
-          rows={10}
-          aria-label="Modo de preparo"
-        />
+        <textarea className="ficha-modo" value={modoPreparo} onChange={(e) => setModoPreparo(e.target.value)} rows={10} aria-label="Modo de preparo" />
 
-        {erro && <p className="form-error" style={{ marginTop: 14 }}>{erro}</p>}
+        {erro && (
+          <p className="form-error" style={{ marginTop: 14 }}>
+            {erro}
+          </p>
+        )}
 
         <div className="modal-footer">
           {ficha ? (
@@ -324,7 +371,7 @@ export default function FichaEditor({
             <div />
           )}
           <div className="modal-footer-right">
-            <Link href="/fichas-tecnicas" className="btn-secondary">
+            <Link href={voltarPara} className="btn-secondary">
               Cancelar
             </Link>
             <button type="submit" className="btn-primary" disabled={salvando}>

@@ -1,6 +1,6 @@
 'use client'
 
-import { cloneElement, useEffect, useMemo, useState } from 'react'
+import { cloneElement, useMemo, useState } from 'react'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
@@ -10,6 +10,7 @@ import { TIPOS_PRODUTO, type Produto } from '@/lib/types/domain'
 import { formatCurrency } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
+import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
 import { alternarAtivoProduto } from './actions'
 
 const TIPO_LABEL: Record<string, string> = {
@@ -95,11 +96,15 @@ export default function ProdutosClient({ produtos }: { produtos: Produto[] }) {
       .sort((a, b) => a.nome.localeCompare(b.nome))
   }, [produtos, filtroNome, filtroTipo, filtroCategoria, filtroPeso, filtroValorUnit, filtroAtivo])
 
-  useEffect(() => {
-    setPaginaAtual(1)
-  }, [produtosFiltrados])
-
   const totalPaginas = Math.max(1, Math.ceil(produtosFiltrados.length / ITENS_POR_PAGINA))
+  // Volta pra página 1 só quando um filtro muda — editar um produto não tira o
+  // usuário da página em que ele estava (ver useAjustarPagina).
+  useAjustarPagina({
+    paginaAtual,
+    setPaginaAtual,
+    totalPaginas,
+    filtros: [filtroNome, filtroTipo, filtroCategoria, filtroPeso, filtroValorUnit, filtroAtivo],
+  })
   const produtosPaginados = useMemo(
     () => produtosFiltrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
     [produtosFiltrados, paginaAtual]

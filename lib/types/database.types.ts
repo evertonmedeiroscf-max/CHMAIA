@@ -344,7 +344,10 @@ export interface Database {
           id: string
           tipo: string
           nome: string
-          rendimento_kg: number
+          rendimento_kg: number | null
+          markup: number | null
+          serve: number | null
+          nome_aba: string | null
           data_atualizacao: string | null
           modo_preparo: string | null
           created_by: string | null
@@ -355,7 +358,10 @@ export interface Database {
           id?: string
           tipo?: string
           nome: string
-          rendimento_kg: number
+          rendimento_kg?: number | null
+          markup?: number | null
+          serve?: number | null
+          nome_aba?: string | null
           data_atualizacao?: string | null
           modo_preparo?: string | null
           created_by?: string | null
@@ -370,10 +376,14 @@ export interface Database {
           id: string
           ficha_id: string
           ordem: number
-          estoque_item_id: string
+          estoque_item_id: string | null
+          ficha_ingrediente_id: string | null
+          ingrediente_origem: string | null
+          sem_origem: boolean
+          sem_origem_motivo: string | null
           observacao: string | null
-          peso_liquido: number
-          fc: number
+          peso_liquido: number | null
+          fc: number | null
           medida_caseira: string | null
           created_at: string
         }
@@ -381,10 +391,14 @@ export interface Database {
           id?: string
           ficha_id: string
           ordem: number
-          estoque_item_id: string
+          estoque_item_id?: string | null
+          ficha_ingrediente_id?: string | null
+          ingrediente_origem?: string | null
+          sem_origem?: boolean
+          sem_origem_motivo?: string | null
           observacao?: string | null
-          peso_liquido: number
-          fc?: number
+          peso_liquido?: number | null
+          fc?: number | null
           medida_caseira?: string | null
           created_at?: string
         }
@@ -400,6 +414,12 @@ export interface Database {
             foreignKeyName: 'fichas_tecnicas_ingredientes_estoque_item_id_fkey'
             columns: ['estoque_item_id']
             referencedRelation: 'estoque_itens'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'fichas_tecnicas_ingredientes_ficha_ingrediente_id_fkey'
+            columns: ['ficha_ingrediente_id']
+            referencedRelation: 'fichas_tecnicas'
             referencedColumns: ['id']
           },
         ]

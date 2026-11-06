@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
 import DateRangePicker from '@/components/DateRangePicker'
 import Pagination from '@/components/Pagination'
 import type { HistoricoAlteracao } from '@/lib/types/domain'
@@ -103,11 +104,14 @@ export default function HistoricoClient({ historico }: { historico: HistoricoAlt
     })
   }, [historico, filtroDataInicio, filtroDataFim, filtroUsuario, filtroTabela, filtroOperacao])
 
-  useEffect(() => {
-    setPaginaAtual(1)
-  }, [historicoFiltrado])
-
   const totalPaginas = Math.max(1, Math.ceil(historicoFiltrado.length / ITENS_POR_PAGINA))
+  // Volta pra página 1 só quando um filtro muda (ver useAjustarPagina).
+  useAjustarPagina({
+    paginaAtual,
+    setPaginaAtual,
+    totalPaginas,
+    filtros: [filtroDataInicio, filtroDataFim, filtroUsuario, filtroTabela, filtroOperacao],
+  })
   const historicoPaginado = useMemo(
     () => historicoFiltrado.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
     [historicoFiltrado, paginaAtual]

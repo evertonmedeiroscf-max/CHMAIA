@@ -211,25 +211,52 @@ export interface EstoqueItem {
 // "bases" (planilha: FICHA TÉCNICA DE PREPARO - BASES). Custos e pesos
 // calculados (peso bruto, preço unitário, custo total, custo do kg) NÃO são
 // gravados — ver lib/utils/fichaTecnica.ts.
+export const TIPOS_FICHA = ['bases', 'finalizacao'] as const
+export type TipoFicha = (typeof TIPOS_FICHA)[number]
+export const TIPO_FICHA_LABEL: Record<TipoFicha, string> = {
+  bases: 'Ficha técnica - Base',
+  finalizacao: 'Ficha técnica - Finalização',
+}
+// Texto da faixa do meio no topo da ficha (igual ao da planilha).
+export const TIPO_FICHA_TITULO: Record<TipoFicha, string> = {
+  bases: 'FICHA TÉCNICA DE PREPARO - BASES',
+  finalizacao: 'FICHA TÉCNICA DE PREPARO - FINALIZAÇÃO',
+}
+
+// BASE: tem rendimento (kg) e custo do kg. FINALIZAÇÃO: gerada a partir da Base
+// do mesmo produto, tem markup e "serve" (porções) e não tem rendimento.
 export interface FichaTecnica {
   id: string
-  tipo: 'bases'
+  tipo: TipoFicha
   nome: string
-  rendimento_kg: number
+  rendimento_kg: number | null
+  markup: number | null
+  serve: number | null
   data_atualizacao: string | null
   modo_preparo: string | null
+  // Nome da aba da planilha de origem (só para rastreio).
+  nome_aba: string | null
   created_at: string
   updated_at: string
 }
 
+// Cada linha aponta para UM item do Estoque OU para UMA ficha de Base — ou para
+// nenhum dos dois quando a importação não conseguiu associar com clareza
+// (sem_origem): aí o campo fica em branco, a tela realça a linha e mostra
+// `ingrediente_origem` (o nome que estava no arquivo) e o motivo. Peso líquido e
+// FC podem ser nulos: o sistema não assume valor que o arquivo não trouxe.
 export interface FichaTecnicaIngrediente {
   id: string
   ficha_id: string
   ordem: number
-  estoque_item_id: string
+  estoque_item_id: string | null
+  ficha_ingrediente_id: string | null
+  ingrediente_origem: string | null
+  sem_origem: boolean
+  sem_origem_motivo: string | null
   observacao: string | null
-  peso_liquido: number
-  fc: number
+  peso_liquido: number | null
+  fc: number | null
   medida_caseira: string | null
 }
 

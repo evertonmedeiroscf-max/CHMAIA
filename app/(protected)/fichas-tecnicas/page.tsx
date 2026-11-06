@@ -1,46 +1,45 @@
 import { exigirAcesso } from '@/lib/supabase/acesso'
-import type { FichaTecnica } from '@/lib/types/domain'
-import { calcularFicha } from '@/lib/utils/fichaTecnica'
-import { carregarItensEstoque, carregarLinhasIngredientes, type LinhaResumo } from './dados'
-import FichasTecnicasClient, { type FichaListada } from './FichasTecnicasClient'
+import { carregarDadosFichas } from './dados'
+import FichasTecnicasClient from './FichasTecnicasClient'
+import type { FichaListada } from './listagem'
+
+// Montar todas as fichas e custos leva mais que o padrão da Vercel em contas com
+// muitos dados; dá folga.
+export const maxDuration = 30
 
 export default async function FichasTecnicasPage() {
   const supabase = await exigirAcesso('fichas-tecnicas')
 
-  const { data: fichas, error } = await supabase.from('fichas_tecnicas').select('*').order('nome')
-  if (error) {
-    return <p className="form-error">Erro ao carregar as fichas técnicas: {error.message}</p>
+  let dados
+  try {
+    dados = await carregarDadosFichas(supabase)
+  } catch (erro) {
+    return <p className="form-error">Erro ao carregar as fichas técnicas: {erro instanceof Error ? erro.message : 'erro desconhecido'}</p>
+  }
+  const { fichas, linhas, resumos } = dados
+
+  const porFicha = new Map<string, { total: number; semOrigem: number }>()
+  for (const l of linhas) {
+    const atual = porFicha.get(l.ficha_id) ?? { total: 0, semOrigem: 0 }
+    atual.total++
+    if (l.sem_origem) atual.semOrigem++
+    porFicha.set(l.ficha_id, atual)
   }
 
-  const [linhas, itens] = await Promise.all([carregarLinhasIngredientes(supabase), carregarItensEstoque(supabase)])
-
-  const precoPorItem = new Map(itens.map((i) => [i.id, i.preco_corrente]))
-  const linhasPorFicha = new Map<string, LinhaResumo[]>()
-  for (const linha of linhas) {
-    const lista = linhasPorFicha.get(linha.ficha_id) ?? []
-    lista.push(linha)
-    linhasPorFicha.set(linha.ficha_id, lista)
-  }
-
-  const lista: FichaListada[] = ((fichas ?? []) as FichaTecnica[]).map((ficha) => {
-    const doGrupo = linhasPorFicha.get(ficha.id) ?? []
-    const resumo = calcularFicha(
-      doGrupo.map((l) => ({
-        peso_liquido: l.peso_liquido,
-        fc: l.fc,
-        preco_kg: precoPorItem.get(l.estoque_item_id) ?? null,
-      })),
-      ficha.rendimento_kg
-    )
+  const lista: FichaListada[] = fichas.map((ficha) => {
+    const resumo = resumos.get(ficha.id)
+    const contagem = porFicha.get(ficha.id) ?? { total: 0, semOrigem: 0 }
     return {
       id: ficha.id,
       nome: ficha.nome,
+      tipo: ficha.tipo,
       rendimento_kg: ficha.rendimento_kg,
       data_atualizacao: ficha.data_atualizacao,
-      ingredientes: doGrupo.length,
-      custo_total: resumo.custoTotal,
-      custo_kg: resumo.custoKg,
-      sem_preco: resumo.semPreco,
+      ingredientes: contagem.total,
+      custo_total: resumo?.custoTotal ?? 0,
+      custo_kg: resumo?.custoKg ?? null,
+      incompletas: resumo?.incompletas ?? 0,
+      sem_origem: contagem.semOrigem,
     }
   })
 

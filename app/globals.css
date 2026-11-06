@@ -1321,6 +1321,163 @@ input[type='password'] {
   color: var(--amber-text);
 }
 
+/* Topo da ficha: logotipo à esquerda e as 3 faixas vermelhas ao lado (como na planilha). */
+.ficha-topo {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+}
+
+.ficha-logo {
+  flex: 0 0 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  background: #fff;
+  border-right: 1px solid var(--border);
+}
+
+.ficha-logo img {
+  display: block;
+  width: 100%;
+  max-width: 210px;
+  height: auto;
+}
+
+.ficha-faixas {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.ficha-faixas .ficha-barra:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 720px) {
+  .ficha-topo {
+    flex-direction: column;
+  }
+  .ficha-logo {
+    flex-basis: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* Ficha para leitura: mesma grade, sem a coluna de remover. */
+.ficha-grade-leitura {
+  grid-template-columns: minmax(240px, 2fr) minmax(130px, 1fr) 64px 100px 80px 92px 130px 100px 110px;
+}
+
+.ficha-texto-leitura {
+  font-size: 13px;
+  padding: 8px 6px;
+}
+
+.ficha-ingrediente {
+  font-size: 13px;
+  padding: 4px 6px;
+  min-width: 0;
+}
+
+.ficha-modo-leitura {
+  white-space: pre-wrap;
+  padding: 14px 16px 4px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.ficha-aviso-incompleta {
+  margin: 0 16px 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  font-size: 12px;
+}
+
+/* Linha cujo ingrediente a importação não conseguiu associar: realçada, campo em branco. */
+.ficha-linha-sem-origem {
+  background: var(--danger-bg);
+  box-shadow: inset 4px 0 0 var(--danger);
+}
+
+.ficha-sem-origem-texto {
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--danger);
+  letter-spacing: 0.02em;
+}
+
+.ficha-origem-ref {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--text-muted);
+}
+
+/* Índice alfabético das fichas (Base x Finalização). */
+.indice-busca {
+  width: 340px;
+  max-width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.indice-fichas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.indice-secao {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 20px 16px;
+}
+
+.indice-titulo {
+  margin: 0 -20px 4px;
+  padding: 10px 20px;
+  background: #e60000;
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.indice-titulo span {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.indice-letra {
+  margin: 14px 0 6px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.indice-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.indice-lista li {
+  padding: 3px 0;
+  font-size: 13px;
+}
+
 /* Escolha de ingrediente do Estoque (lista "fixed" pra não ser cortada pelo scroll da tabela). */
 .picker {
   position: relative;

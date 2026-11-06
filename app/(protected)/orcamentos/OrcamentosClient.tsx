@@ -10,6 +10,7 @@ import { ENTIDADE_LABEL, ENTIDADE_TIPOS, STATUS_ORCAMENTO, type Orcamento, type 
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
+import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
 import { converterEmPedido } from './actions'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -165,11 +166,31 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
     filtroStatus,
   ])
 
-  useEffect(() => {
-    setPaginaAtual(1)
-  }, [orcamentosFiltrados])
-
   const totalPaginas = Math.max(1, Math.ceil(orcamentosFiltrados.length / ITENS_POR_PAGINA))
+  // Volta pra página 1 só quando um filtro muda — editar um orçamento não tira o
+  // usuário da página em que ele estava (ver useAjustarPagina).
+  useAjustarPagina({
+    paginaAtual,
+    setPaginaAtual,
+    totalPaginas,
+    filtros: [
+      filtroNumero,
+      filtroDataInicio,
+      filtroDataFim,
+      filtroCliente,
+      filtroEntidade,
+      filtroDataEventoInicio,
+      filtroDataEventoFim,
+      filtroHoraEvento,
+      filtroDescricao,
+      filtroNumeroPessoas,
+      filtroValorTotal,
+      filtroValorPorPessoa,
+      filtroValidadeInicio,
+      filtroValidadeFim,
+      filtroStatus,
+    ],
+  })
   const orcamentosPaginados = useMemo(
     () => orcamentosFiltrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
     [orcamentosFiltrados, paginaAtual]

@@ -1,6 +1,6 @@
 'use client'
 
-import { cloneElement, useEffect, useMemo, useState } from 'react'
+import { cloneElement, useMemo, useState } from 'react'
 import Link from 'next/link'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
@@ -14,6 +14,7 @@ import { CATEGORIAS_ESTOQUE, UNIDADES_MEDIDA, type EstoqueItem } from '@/lib/typ
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
+import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
 
 // Ordem fixa pedida: Descrição/Item, Categoria, Unid./Medida, Preço
 // corrente, FC, Custo/Und., Dt atualiz. preço, Marca/Fornecedor, Estoque
@@ -169,13 +170,30 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
     [itensFiltrados]
   )
 
-  // Volta pra primeira página sempre que o filtro muda o conjunto de
-  // resultados — sem isso, dava pra ficar "preso" numa página vazia.
-  useEffect(() => {
-    setPaginaAtual(1)
-  }, [itensFiltrados])
-
   const totalPaginas = Math.max(1, Math.ceil(itensFiltrados.length / ITENS_POR_PAGINA))
+  // Volta pra página 1 só quando um filtro muda — editar um item não tira o
+  // usuário da página em que ele estava (ver useAjustarPagina).
+  useAjustarPagina({
+    paginaAtual,
+    setPaginaAtual,
+    totalPaginas,
+    filtros: [
+      filtroNome,
+      filtroCategoria,
+      filtroUnidade,
+      filtroPreco,
+      filtroFc,
+      filtroCusto,
+      filtroDtPrecoInicio,
+      filtroDtPrecoFim,
+      filtroMarca,
+      filtroMinimo,
+      filtroAtual,
+      filtroValorTotal,
+      filtroDtEstoqueInicio,
+      filtroDtEstoqueFim,
+    ],
+  })
   const itensPaginados = useMemo(
     () => itensFiltrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
     [itensFiltrados, paginaAtual]

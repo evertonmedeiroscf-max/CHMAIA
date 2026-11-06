@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ItemEstoqueFicha } from '@/lib/types/domain'
-import { formatCurrency } from '@/lib/utils/format'
+
+// Uma opção de ingrediente: item do Estoque ("e:<id>") ou ficha de Base ("f:<id>").
+export type OpcaoIngrediente = { chave: string; nome: string; detalhe: string }
 
 function normalizar(texto: string) {
   return texto
@@ -13,23 +14,26 @@ function normalizar(texto: string) {
 
 const MAX_RESULTADOS = 50
 
-// Escolha de um item do Estoque pela busca no nome (sem diferenciar acento nem
-// maiúscula). Cada opção mostra categoria, unidade e preço corrente porque o
-// Estoque pode ter itens com o mesmo nome (ex.: MORTADELA) — quem decide qual
-// vale é o usuário, nunca o sistema. A lista usa posição "fixed" pra não ser
-// cortada pelo scroll horizontal da tabela da ficha.
-export default function EstoqueItemPicker({
-  itens,
+// Escolha de um ingrediente pela busca no nome (sem diferenciar acento nem
+// maiúscula). Cada opção mostra categoria, unidade e preço (ou "Ficha de Base" e
+// o custo/kg) porque pode haver itens com o mesmo nome (ex.: MORTADELA) ou um
+// item do Estoque com o nome de uma Base — quem decide qual vale é o usuário,
+// nunca o sistema. A lista usa posição "fixed" pra não ser cortada pelo scroll
+// horizontal da tabela da ficha.
+export default function IngredientePicker({
+  opcoes,
   valor,
   onChange,
   invalido = false,
+  placeholder = 'Buscar ingrediente…',
 }: {
-  itens: ItemEstoqueFicha[]
+  opcoes: OpcaoIngrediente[]
   valor: string
-  onChange: (itemId: string) => void
+  onChange: (chave: string) => void
   invalido?: boolean
+  placeholder?: string
 }) {
-  const selecionado = useMemo(() => itens.find((i) => i.id === valor), [itens, valor])
+  const selecionada = useMemo(() => opcoes.find((o) => o.chave === valor), [opcoes, valor])
   const [busca, setBusca] = useState('')
   const [aberto, setAberto] = useState(false)
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null)
@@ -39,15 +43,15 @@ export default function EstoqueItemPicker({
   const resultados = useMemo(() => {
     if (!aberto) return []
     const q = normalizar(busca.trim())
-    const lista = q ? itens.filter((i) => normalizar(i.nome).includes(q)) : itens
+    const lista = q ? opcoes.filter((o) => normalizar(o.nome).includes(q)) : opcoes
     return lista.slice(0, MAX_RESULTADOS)
-  }, [aberto, busca, itens])
+  }, [aberto, busca, opcoes])
 
   useEffect(() => {
     if (!aberto) return
     function reposicionar() {
       const r = inputRef.current?.getBoundingClientRect()
-      if (r) setPos({ top: r.bottom + 2, left: r.left, width: Math.max(r.width, 340) })
+      if (r) setPos({ top: r.bottom + 2, left: r.left, width: Math.max(r.width, 360) })
     }
     function fecharAoClicarFora(e: MouseEvent) {
       if (!raizRef.current?.contains(e.target as Node)) setAberto(false)
@@ -63,8 +67,8 @@ export default function EstoqueItemPicker({
     }
   }, [aberto])
 
-  function escolher(item: ItemEstoqueFicha) {
-    onChange(item.id)
+  function escolher(opcao: OpcaoIngrediente) {
+    onChange(opcao.chave)
     setAberto(false)
     setBusca('')
   }
@@ -75,8 +79,8 @@ export default function EstoqueItemPicker({
         ref={inputRef}
         type="text"
         className={`picker-input${invalido ? ' picker-invalido' : ''}`}
-        placeholder="Buscar ingrediente no Estoque…"
-        value={aberto ? busca : (selecionado?.nome ?? '')}
+        placeholder={placeholder}
+        value={aberto ? busca : (selecionada?.nome ?? '')}
         onFocus={() => {
           setBusca('')
           setAberto(true)
@@ -101,25 +105,22 @@ export default function EstoqueItemPicker({
       />
       {aberto && pos && (
         <ul className="picker-lista" style={{ top: pos.top, left: pos.left, width: pos.width }} role="listbox">
-          {resultados.map((item) => (
+          {resultados.map((opcao) => (
             <li
-              key={item.id}
+              key={opcao.chave}
               role="option"
-              aria-selected={item.id === valor}
+              aria-selected={opcao.chave === valor}
               // mousedown (e não click) pra escolher antes do input perder o foco
               onMouseDown={(e) => {
                 e.preventDefault()
-                escolher(item)
+                escolher(opcao)
               }}
             >
-              <span className="picker-nome">{item.nome}</span>
-              <span className="picker-detalhe">
-                {item.categoria} · {item.unidade_medida} ·{' '}
-                {item.preco_corrente !== null ? formatCurrency(item.preco_corrente) : 'sem preço'}
-              </span>
+              <span className="picker-nome">{opcao.nome}</span>
+              <span className="picker-detalhe">{opcao.detalhe}</span>
             </li>
           ))}
-          {resultados.length === 0 && <li className="picker-vazio">Nenhum item do Estoque encontrado</li>}
+          {resultados.length === 0 && <li className="picker-vazio">Nenhum ingrediente encontrado</li>}
         </ul>
       )}
     </div>

@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
 import Link from 'next/link'
 import Pagination from '@/components/Pagination'
 import type { NotaCompra, NotaCompraItem } from '@/lib/types/domain'
@@ -26,11 +27,16 @@ export default function NotasCompraEstoqueClient({ notas, itens }: { notas: Nota
     [notas]
   )
 
-  useEffect(() => {
-    setPaginaAtual(1)
-  }, [notasOrdenadas])
-
   const totalPaginas = Math.max(1, Math.ceil(notasOrdenadas.length / ITENS_POR_PAGINA))
+  // Sem filtros nesta lista. Conferir uma nota ABRE OUTRA TELA, então a página
+  // fica lembrada na sessão e a lista retoma nela ao voltar.
+  useAjustarPagina({
+    paginaAtual,
+    setPaginaAtual,
+    totalPaginas,
+    filtros: [],
+    chaveArmazenamento: 'pagina:estoque-notas-compra',
+  })
   const notasPaginadas = useMemo(
     () => notasOrdenadas.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
     [notasOrdenadas, paginaAtual]

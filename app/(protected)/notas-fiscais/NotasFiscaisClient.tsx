@@ -1,6 +1,6 @@
 'use client'
 
-import { cloneElement, useEffect, useMemo, useState } from 'react'
+import { cloneElement, useMemo, useState } from 'react'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
 import Modal from '@/components/Modal'
@@ -10,6 +10,7 @@ import type { FormaPagamento, NotaFiscalComPedido, Pedido } from '@/lib/types/do
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
+import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -160,11 +161,33 @@ export default function NotasFiscaisClient({
     filtroPago,
   ])
 
-  useEffect(() => {
-    setPaginaAtual(1)
-  }, [notasFiltradas])
-
   const totalPaginas = Math.max(1, Math.ceil(notasFiltradas.length / ITENS_POR_PAGINA))
+  // Volta pra página 1 só quando um filtro muda — editar uma nota não tira o
+  // usuário da página em que ele estava (ver useAjustarPagina).
+  useAjustarPagina({
+    paginaAtual,
+    setPaginaAtual,
+    totalPaginas,
+    filtros: [
+      filtroNumeroNota,
+      filtroPedidoNumero,
+      filtroVendaInicio,
+      filtroVendaFim,
+      filtroValor,
+      filtroValorPago,
+      filtroFaltaPagar,
+      filtroEmissaoInicio,
+      filtroEmissaoFim,
+      filtroPrevisaoInicio,
+      filtroPrevisaoFim,
+      filtroCliente,
+      filtroForma,
+      filtroBanco,
+      filtroDataPagamentoInicio,
+      filtroDataPagamentoFim,
+      filtroPago,
+    ],
+  })
   const notasPaginadas = useMemo(
     () => notasFiltradas.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
     [notasFiltradas, paginaAtual]
