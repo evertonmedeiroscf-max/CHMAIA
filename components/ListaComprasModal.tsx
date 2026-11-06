@@ -1,34 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import * as XLSX from 'xlsx'
 import type { EstoqueItem } from '@/lib/types/domain'
 import { formatCurrency } from '@/lib/utils/format'
+import { formatarQuantidade, gerarArquivoExcel, itensParaComprar as listarItensParaComprar } from '@/lib/utils/listaCompras'
 
 const GRID = '110px 1fr 200px 140px'
-
-type ItemParaComprar = EstoqueItem & { qtdComprar: number }
-
-// Gera o mesmo conteúdo da tabela em tela como um arquivo .xlsx de verdade
-// (não um .csv disfarçado) — usa a biblioteca SheetJS instalada a partir do
-// tarball oficial deles (cdn.sheetjs.com), não do pacote "xlsx" do registro
-// do npm: a versão do registro está travada numa release antiga com duas
-// vulnerabilidades altas sem correção (prototype pollution e ReDoS); o
-// próprio SheetJS recomenda instalar direto do CDN deles por causa disso.
-function gerarArquivoExcel(itens: ItemParaComprar[]): Blob {
-  const linhas = itens.map((item) => ({
-    'Qtd.': `${item.qtdComprar} ${item.unidade_medida}`,
-    'Nome do produto': item.nome,
-    'Marca/Fornecedor': item.marca_fornecedor ?? '-',
-    'Preço corrente': item.preco_corrente != null ? formatCurrency(item.preco_corrente) : '-',
-  }))
-  const planilha = XLSX.utils.json_to_sheet(linhas)
-  planilha['!cols'] = [{ wch: 10 }, { wch: 32 }, { wch: 22 }, { wch: 16 }]
-  const livro = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(livro, planilha, 'Lista de compras')
-  const arrayBuffer = XLSX.write(livro, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
-  return new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-}
 
 // "YYYY/MM/DD" não dá pra usar num nome de arquivo de verdade — "/" é
 // separador de pasta (o Windows recusa, o navegador cortaria o nome no meio)
@@ -40,15 +17,12 @@ function nomeArquivo() {
   return `lista de compras - ${hoje.getFullYear()}-${pad(hoje.getMonth() + 1)}-${pad(hoje.getDate())}.xlsx`
 }
 
-// Mesmo critério de "estoque baixo" já usado na tabela principal (flag
-// ESTOQUE BAIXO em EstoqueClient) — abaixo do mínimo, não igual a ele.
+// Itens abaixo do mínimo e a quantidade a comprar (2 casas decimais) vêm de
+// lib/utils/listaCompras.ts — a mesma conta vale na tela e no Excel.
 export default function ListaComprasModal({ itens, onClose }: { itens: EstoqueItem[]; onClose: () => void }) {
   const [aviso, setAviso] = useState('')
 
-  const itensParaComprar: ItemParaComprar[] = itens
-    .filter((item) => item.quantidade_atual < item.quantidade_minima)
-    .map((item) => ({ ...item, qtdComprar: item.quantidade_minima - item.quantidade_atual }))
-    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+  const itensParaComprar = listarItensParaComprar(itens)
 
   async function compartilharWhatsApp() {
     setAviso('')
@@ -100,7 +74,7 @@ export default function ListaComprasModal({ itens, onClose }: { itens: EstoqueIt
           {itensParaComprar.map((item) => (
             <div key={item.id} className="table-row" style={{ gridTemplateColumns: GRID }}>
               <div className="col-center" style={{ fontWeight: 600 }}>
-                {item.qtdComprar} {item.unidade_medida}
+                {formatarQuantidade(item.qtdComprar, item.unidade_medida)}
               </div>
               <div className="text-strong">{item.nome}</div>
               <div className="col-center text-muted">{item.marca_fornecedor ?? '-'}</div>
