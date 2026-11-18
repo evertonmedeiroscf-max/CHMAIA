@@ -2,6 +2,8 @@ import Link from 'next/link'
 import type { FichaTecnica } from '@/lib/types/domain'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { formatNumero, type ResumoFicha } from '@/lib/utils/fichaTecnica'
+import BotaoDuplicar from './BotaoDuplicar'
+import BotaoPaginaAnterior from './BotaoPaginaAnterior'
 import FichaCabecalho from './FichaCabecalho'
 import { TEXTO_SEM_ORIGEM, type LinhaVisual } from './visual'
 
@@ -35,10 +37,12 @@ export default function FichaVisualizacao({
     <div>
       <div className="page-header">
         <h1>{ficha.nome}</h1>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <BotaoPaginaAnterior />
           <Link href="/fichas-tecnicas" className="btn-secondary">
             ← Voltar para o índice
           </Link>
+          <BotaoDuplicar ficha={ficha} />
           <Link href={`/fichas-tecnicas/${ficha.id}/editar`} className="btn-primary">
             Editar ficha
           </Link>

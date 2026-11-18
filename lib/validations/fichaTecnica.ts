@@ -82,3 +82,19 @@ export const fichaTecnicaSchema = z
   })
 
 export type FichaTecnicaFormValues = z.infer<typeof fichaTecnicaSchema>
+
+// Duplicar uma ficha: nome e tipo da nova (o rendimento só vale para Base e é
+// obrigatório lá, igual a qualquer ficha de Base). `confirmar_duplicada` = a
+// pessoa já viu o aviso de "já existe uma ficha com esse nome" e quer criar mesmo assim.
+export const duplicarFichaSchema = z
+  .object({
+    nome: z.string().trim().min(1, 'Informe o nome da nova ficha'),
+    tipo: z.enum(TIPOS_FICHA),
+    rendimento_kg: numeroOpcional('Rendimento inválido').pipe(z.number().positive('O rendimento deve ser maior que zero').nullable()),
+    confirmar_duplicada: z.boolean().optional(),
+  })
+  .superRefine((dados, ctx) => {
+    if (dados.tipo === 'bases' && dados.rendimento_kg === null) {
+      ctx.addIssue({ code: 'custom', path: ['rendimento_kg'], message: 'Informe o rendimento da ficha de Base' })
+    }
+  })

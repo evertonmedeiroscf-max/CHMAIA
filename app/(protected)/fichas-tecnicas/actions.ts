@@ -2,9 +2,73 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { fichaTecnicaSchema } from '@/lib/validations/fichaTecnica'
+import type { FichaTecnica, FichaTecnicaIngrediente, TipoFicha } from '@/lib/types/domain'
+import { fichasComMesmoNome, montarCopiaFicha } from '@/lib/utils/duplicarFicha'
+import { duplicarFichaSchema, fichaTecnicaSchema } from '@/lib/validations/fichaTecnica'
 
 export type ResultadoFicha = { error: string } | { id: string }
+
+export type FichaMesmoNome = { id: string; nome: string; tipo: TipoFicha }
+// `duplicadas` preenchido = NADA foi gravado: já existe ficha com esse nome e tipo;
+// a tela mostra o aviso e, se a pessoa confirmar, chama de novo com `confirmar_duplicada`.
+export type ResultadoDuplicar = { error: string } | { duplicadas: FichaMesmoNome[] } | { id: string }
+
+// Duplica uma ficha: cria uma ficha NOVA (nome e tipo escolhidos) com os mesmos
+// ingredientes e o mesmo modo de preparo. A ficha de origem não é alterada.
+export async function duplicarFichaTecnica(origemId: string, dados: unknown): Promise<ResultadoDuplicar> {
+  const parsed = duplicarFichaSchema.safeParse(dados)
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
+  const { nome, tipo, rendimento_kg, confirmar_duplicada } = parsed.data
+
+  const supabase = await createClient()
+
+  const { data: origem, error: erroOrigem } = await supabase.from('fichas_tecnicas').select('*').eq('id', origemId).maybeSingle()
+  if (erroOrigem) return { error: erroOrigem.message }
+  if (!origem) return { error: 'A ficha que você quer duplicar não existe mais (ela pode ter sido excluída).' }
+
+  // Já existe uma ficha com esse nome e tipo? Avisa ANTES de gravar qualquer coisa.
+  if (!confirmar_duplicada) {
+    const mesmoTipo: FichaMesmoNome[] = []
+    for (let inicio = 0; ; inicio += 1000) {
+      const { data, error } = await supabase
+        .from('fichas_tecnicas')
+        .select('id, nome, tipo')
+        .eq('tipo', tipo)
+        .order('id')
+        .range(inicio, inicio + 999)
+      if (error) return { error: error.message }
+      const pagina = (data ?? []) as FichaMesmoNome[]
+      mesmoTipo.push(...pagina)
+      if (pagina.length < 1000) break
+    }
+    const duplicadas = fichasComMesmoNome(mesmoTipo, nome, tipo)
+    if (duplicadas.length > 0) return { duplicadas }
+  }
+
+  const { data: linhasOrigem, error: erroLinhas } = await supabase
+    .from('fichas_tecnicas_ingredientes')
+    .select('*')
+    .eq('ficha_id', origemId)
+    .order('ordem')
+  if (erroLinhas) return { error: erroLinhas.message }
+
+  const copia = montarCopiaFicha(origem as FichaTecnica, (linhasOrigem ?? []) as FichaTecnicaIngrediente[], { nome, tipo, rendimentoKg: rendimento_kg })
+
+  const { data: nova, error: erroNova } = await supabase.from('fichas_tecnicas').insert(copia.cabecalho).select('id').single()
+  if (erroNova || !nova) return { error: erroNova?.message ?? 'Não foi possível criar a nova ficha.' }
+
+  if (copia.linhas.length > 0) {
+    const { error } = await supabase.from('fichas_tecnicas_ingredientes').insert(copia.linhas.map((l) => ({ ...l, ficha_id: nova.id })))
+    if (error) {
+      // Sem as linhas a cópia ficaria pela metade: desfaz a criação.
+      await supabase.from('fichas_tecnicas').delete().eq('id', nova.id)
+      return { error: `Não foi possível copiar os ingredientes: ${error.message}` }
+    }
+  }
+
+  revalidatePath('/fichas-tecnicas')
+  return { id: nova.id }
+}
 
 // Cria (id = null) ou atualiza uma ficha técnica de preparo e todas as linhas de
 // ingredientes dela. O supabase-js não tem transação, então a ordem das
