@@ -1,5 +1,6 @@
 import type { FichaTecnica, FichaTecnicaIngrediente, ItemEstoqueFicha } from '@/lib/types/domain'
 import { pesoBruto, precoUnitario, type ResumoFicha } from '@/lib/utils/fichaTecnica'
+import { ordenarIngredientes } from '@/lib/utils/ordenarIngredientes'
 
 // Texto que marca a linha cujo ingrediente a importação não conseguiu associar com clareza.
 export const TEXTO_SEM_ORIGEM = 'NÃO CONSEGUIU OBTER INFORMAÇÃO DO ARQUIVO'
@@ -37,10 +38,10 @@ export function montarLinhasVisuais(
 ): LinhaVisual[] {
   const itemPorId = new Map(itens.map((i) => [i.id, i]))
   const fichaPorId = new Map(fichas.map((f) => [f.id, f]))
-  return linhas
+  const montadas = linhas
     .filter((l) => l.ficha_id === fichaId)
     .sort((a, b) => a.ordem - b.ordem)
-    .map((l) => {
+    .map((l): LinhaVisual => {
       let nome: string | null = null
       let unidade = ''
       let precoKg: number | null = null
@@ -82,4 +83,7 @@ export function montarLinhasVisuais(
         parcial,
       }
     })
+
+  // Maior peso líquido primeiro; empate = ordem alfabética (linha sem associação usa o nome que veio do arquivo).
+  return ordenarIngredientes(montadas, (l) => ({ peso: l.pesoLiquido, nome: l.nome ?? l.origem ?? '' }))
 }

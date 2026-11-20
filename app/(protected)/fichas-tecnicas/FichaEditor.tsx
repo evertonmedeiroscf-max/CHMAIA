@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { TIPO_FICHA_LABEL, type FichaTecnica, type FichaTecnicaIngrediente, type ItemEstoqueFicha, type TipoFicha } from '@/lib/types/domain'
 import { formatCurrency } from '@/lib/utils/format'
 import { calcularFicha, formatNumero, pesoBruto, precoUnitario, type LinhaCalculo } from '@/lib/utils/fichaTecnica'
+import { ordenarIngredientes } from '@/lib/utils/ordenarIngredientes'
 import { MAX_INGREDIENTES_FICHA } from '@/lib/validations/fichaTecnica'
 import FichaCabecalho from './FichaCabecalho'
 import { TEXTO_SEM_ORIGEM } from './visual'
@@ -75,23 +76,25 @@ export default function FichaEditor({
   const [serve, setServe] = useState(ficha?.serve != null ? String(ficha.serve) : '')
   const [dataAtualizacao, setDataAtualizacao] = useState(ficha?.data_atualizacao ?? '')
   const [modoPreparo, setModoPreparo] = useState(ficha?.modo_preparo ?? '')
-  const [linhas, setLinhas] = useState<LinhaForm[]>(() =>
-    ficha
-      ? ingredientes.map((i) => ({
-          chave: novaChave(),
-          id: i.id,
-          alvo: i.estoque_item_id ? `e:${i.estoque_item_id}` : i.ficha_ingrediente_id ? `f:${i.ficha_ingrediente_id}` : '',
-          semOrigem: i.sem_origem,
-          origem: i.ingrediente_origem,
-          motivo: i.sem_origem_motivo,
-          pesoOriginalNulo: i.peso_liquido === null,
-          observacao: i.observacao ?? '',
-          peso: i.peso_liquido !== null ? String(i.peso_liquido) : '',
-          fc: i.fc !== null ? String(i.fc) : '',
-          medida: i.medida_caseira ?? '',
-        }))
-      : Array.from({ length: LINHAS_INICIAIS_FICHA_NOVA }, () => novaLinha(novaChave()))
-  )
+  const [linhas, setLinhas] = useState<LinhaForm[]>(() => {
+    if (!ficha) return Array.from({ length: LINHAS_INICIAIS_FICHA_NOVA }, () => novaLinha(novaChave()))
+    const doBanco: LinhaForm[] = ingredientes.map((i) => ({
+      chave: novaChave(),
+      id: i.id,
+      alvo: i.estoque_item_id ? `e:${i.estoque_item_id}` : i.ficha_ingrediente_id ? `f:${i.ficha_ingrediente_id}` : '',
+      semOrigem: i.sem_origem,
+      origem: i.ingrediente_origem,
+      motivo: i.sem_origem_motivo,
+      pesoOriginalNulo: i.peso_liquido === null,
+      observacao: i.observacao ?? '',
+      peso: i.peso_liquido !== null ? String(i.peso_liquido) : '',
+      fc: i.fc !== null ? String(i.fc) : '',
+      medida: i.medida_caseira ?? '',
+    }))
+    // Abre na mesma ordem em que a ficha é mostrada: maior peso líquido primeiro.
+    const nomes = new Map<string, string>([...itens.map((i) => [`e:${i.id}`, i.nome] as const), ...bases.map((b) => [`f:${b.id}`, b.nome] as const)])
+    return ordenarIngredientes(doBanco, (l) => ({ peso: numeroOuNulo(l.peso), nome: nomes.get(l.alvo) ?? l.origem ?? '' }))
+  })
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
   const enviandoRef = useRef(false)
@@ -167,7 +170,11 @@ export default function FichaEditor({
         serve: ehBase ? null : serve,
         data_atualizacao: dataAtualizacao || null,
         modo_preparo: modoPreparo || null,
-        ingredientes: preenchidas.map((l) => ({
+        // Grava já na ordem da ficha: maior peso líquido primeiro; empate em ordem alfabética.
+        ingredientes: ordenarIngredientes(preenchidas, (l) => ({
+          peso: numeroOuNulo(l.peso),
+          nome: opcoes.find((o) => o.chave === l.alvo)?.nome ?? l.origem ?? '',
+        })).map((l) => ({
           id: l.id,
           estoque_item_id: l.alvo.startsWith('e:') ? l.alvo.slice(2) : null,
           ficha_ingrediente_id: l.alvo.startsWith('f:') ? l.alvo.slice(2) : null,
