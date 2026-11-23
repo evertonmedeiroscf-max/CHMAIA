@@ -161,7 +161,7 @@ export default function BotaoDuplicar({
             <strong>⚠ Nada foi gravado ainda</strong>
             <p>
               Já existe {duplicadas.length > 1 ? 'mais de uma ficha' : 'uma ficha'} do tipo <strong>{TIPO_FICHA_LABEL[tipo]}</strong> com o nome
-              "{nome.trim()}":
+              &quot;{nome.trim()}&quot;:
             </p>
             <ul>
               {duplicadas.map((d) => (
