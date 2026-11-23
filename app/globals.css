@@ -1474,8 +1474,16 @@ input[type='password'] {
 }
 
 .indice-lista li {
-  padding: 3px 0;
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border-radius: var(--radius);
   font-size: 13px;
+  transition: background-color 0.6s ease;
+}
+
+/* Ficha para a qual a pessoa acabou de voltar ("Voltar para o índice"). */
+.indice-lista li.indice-destaque {
+  background: var(--amber-bg);
 }
 
 /* Escolha de ingrediente do Estoque (lista "fixed" pra não ser cortada pelo scroll da tabela). */

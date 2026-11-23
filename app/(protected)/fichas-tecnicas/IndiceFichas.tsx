@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { TIPOS_FICHA, TIPO_FICHA_LABEL, type TipoFicha } from '@/lib/types/domain'
 import type { FichaListada } from './listagem'
@@ -37,6 +37,20 @@ function agrupar(fichas: FichaListada[]): Grupo[] {
 // Finalização; clicar no nome abre a ficha para leitura.
 export default function IndiceFichas({ fichas }: { fichas: FichaListada[] }) {
   const [busca, setBusca] = useState('')
+  // Ficha para a qual a pessoa voltou (botão "Voltar para o índice" da ficha leva a
+  // /fichas-tecnicas#ficha-<id>): o índice rola até ela e a destaca por alguns segundos.
+  const [destaque, setDestaque] = useState<string | null>(null)
+
+  useEffect(() => {
+    const id = /^#ficha-(.+)$/.exec(window.location.hash)?.[1]
+    if (!id) return
+    const elemento = document.getElementById(`ficha-${id}`)
+    if (!elemento) return
+    elemento.scrollIntoView({ block: 'center' })
+    setDestaque(id)
+    const fim = setTimeout(() => setDestaque(null), 3500)
+    return () => clearTimeout(fim)
+  }, [])
 
   const secoes = useMemo(() => {
     const q = normalizar(busca.trim())
@@ -72,7 +86,7 @@ export default function IndiceFichas({ fichas }: { fichas: FichaListada[] }) {
                 <h3 className="indice-letra">{grupo.letra}</h3>
                 <ul className="indice-lista">
                   {grupo.fichas.map((f) => (
-                    <li key={f.id}>
+                    <li key={f.id} id={`ficha-${f.id}`} className={destaque === f.id ? 'indice-destaque' : undefined}>
                       <Link href={`/fichas-tecnicas/${f.id}`} className="ficha-link-nome">
                         {f.nome}
                       </Link>
