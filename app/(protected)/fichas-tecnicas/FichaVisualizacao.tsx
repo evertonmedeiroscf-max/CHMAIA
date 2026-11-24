@@ -4,9 +4,12 @@ import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { formatNumero, type ResumoFicha } from '@/lib/utils/fichaTecnica'
 import type { LembretesFicha } from '@/lib/utils/lembretesFicha'
 import BotaoDuplicar from './BotaoDuplicar'
+import { separarFotos, type FotoFicha } from '@/lib/utils/fichaFotos'
+import BotaoImprimir from './BotaoImprimir'
 import CabecalhoTabelaFicha from './CabecalhoTabelaFicha'
 import BotaoPaginaAnterior from './BotaoPaginaAnterior'
 import FichaCabecalho from './FichaCabecalho'
+import FotosFicha from './FotosFicha'
 import { TEXTO_SEM_ORIGEM, type LinhaVisual } from './visual'
 
 function Resumo({ rotulo, valor, destaque }: { rotulo: string; valor: string; destaque?: boolean }) {
@@ -29,6 +32,7 @@ export default function FichaVisualizacao({
   linhas,
   lembretes,
   ehAdm,
+  fotos,
 }: {
   ficha: FichaTecnica
   resumo: ResumoFicha
@@ -36,9 +40,14 @@ export default function FichaVisualizacao({
   // Notas amarelas dos cabeçalhos da tabela (todos veem); só o ADM cria/edita/exclui.
   lembretes: LembretesFicha
   ehAdm: boolean
+  // Fotos da ficha: produto finalizado (topo) e passo a passo (depois do modo de preparo).
+  fotos: FotoFicha[]
 }) {
   const ehBase = ficha.tipo === 'bases'
   const semOrigem = linhas.filter((l) => l.semOrigem).length
+  const porPosicao = separarFotos(fotos)
+  const fotosProduto = porPosicao.produto.filter((f) => f.url)
+  const fotosPasso = porPosicao.passo.filter((f) => f.url)
 
   return (
     <div>
@@ -50,6 +59,8 @@ export default function FichaVisualizacao({
             ← Voltar para o índice
           </Link>
           <BotaoDuplicar ficha={ficha} />
+          <FotosFicha fichaId={ficha.id} nome={ficha.nome} fotos={fotos} />
+          <BotaoImprimir ficha={ficha} linhas={linhas} fotos={fotos} />
           <Link href={`/fichas-tecnicas/${ficha.id}/editar`} className="btn-primary">
             Editar ficha
           </Link>
@@ -59,24 +70,37 @@ export default function FichaVisualizacao({
       <div className="ficha">
         <FichaCabecalho tipo={ficha.tipo} nome={ficha.nome} />
 
-        <div className="ficha-resumo">
-          <Resumo rotulo="DATA ATUALIZAÇÃO:" valor={ficha.data_atualizacao ? formatDateBR(ficha.data_atualizacao) : '-'} destaque />
-          {ehBase ? (
-            <>
-              <Resumo rotulo="Rendimento total da receita" valor={ficha.rendimento_kg !== null ? `${formatNumero(ficha.rendimento_kg, 3)} Kg` : '-'} />
-              <Resumo rotulo="Custo total da receita" valor={formatCurrency(resumo.custoTotal)} />
-              <Resumo rotulo="Custo do kg" valor={resumo.custoKg !== null ? formatCurrency(resumo.custoKg) : '-'} />
-            </>
-          ) : (
-            <>
-              <Resumo rotulo="Custo do prato" valor={formatCurrency(resumo.custoTotal)} />
-              <Resumo rotulo="Markup" valor={ficha.markup !== null ? formatNumero(ficha.markup, 2) : '-'} />
-              <Resumo rotulo="Preço sugerido" valor={resumo.precoSugerido !== null ? formatCurrency(resumo.precoSugerido) : '-'} />
-              <Resumo rotulo="Serve" valor={ficha.serve !== null ? formatNumero(ficha.serve, 0) : '-'} />
-              <Resumo rotulo="Peso aproximado" valor={`${formatNumero(resumo.pesoAproximado, 3)} Kg`} />
-              <Resumo rotulo="Peso per capita" valor={resumo.pesoPerCapita !== null ? `${formatNumero(resumo.pesoPerCapita, 3)} Kg` : '-'} />
-            </>
+        {/* Com foto do produto finalizado: foto(s) à esquerda do resumo (a área que ficava em branco). */}
+        <div className={fotosProduto.length > 0 ? 'ficha-meio' : undefined}>
+          {fotosProduto.length > 0 && (
+            <div className="ficha-fotos-produto">
+              {fotosProduto.map((f) => (
+                <a key={f.id} href={f.url ?? undefined} target="_blank" rel="noreferrer" title="Abrir a foto">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.url ?? ''} alt="Produto finalizado" />
+                </a>
+              ))}
+            </div>
           )}
+          <div className="ficha-resumo">
+            <Resumo rotulo="DATA ATUALIZAÇÃO:" valor={ficha.data_atualizacao ? formatDateBR(ficha.data_atualizacao) : '-'} destaque />
+            {ehBase ? (
+              <>
+                <Resumo rotulo="Rendimento total da receita" valor={ficha.rendimento_kg !== null ? `${formatNumero(ficha.rendimento_kg, 3)} Kg` : '-'} />
+                <Resumo rotulo="Custo total da receita" valor={formatCurrency(resumo.custoTotal)} />
+                <Resumo rotulo="Custo do kg" valor={resumo.custoKg !== null ? formatCurrency(resumo.custoKg) : '-'} />
+              </>
+            ) : (
+              <>
+                <Resumo rotulo="Custo do prato" valor={formatCurrency(resumo.custoTotal)} />
+                <Resumo rotulo="Markup" valor={ficha.markup !== null ? formatNumero(ficha.markup, 2) : '-'} />
+                <Resumo rotulo="Preço sugerido" valor={resumo.precoSugerido !== null ? formatCurrency(resumo.precoSugerido) : '-'} />
+                <Resumo rotulo="Serve" valor={ficha.serve !== null ? formatNumero(ficha.serve, 0) : '-'} />
+                <Resumo rotulo="Peso aproximado" valor={`${formatNumero(resumo.pesoAproximado, 3)} Kg`} />
+                <Resumo rotulo="Peso per capita" valor={resumo.pesoPerCapita !== null ? `${formatNumero(resumo.pesoPerCapita, 3)} Kg` : '-'} />
+              </>
+            )}
+          </div>
         </div>
 
         {(resumo.incompletas > 0 || semOrigem > 0) && (
@@ -128,6 +152,20 @@ export default function FichaVisualizacao({
 
         <div className="ficha-barra">MODO DE PREPARO:</div>
         <div className="ficha-modo-leitura">{ficha.modo_preparo ?? 'Sem modo de preparo cadastrado.'}</div>
+
+        {fotosPasso.length > 0 && (
+          <div className="ficha-fotos-passo">
+            {fotosPasso.map((f) => (
+              <figure key={f.id}>
+                <a href={f.url ?? undefined} target="_blank" rel="noreferrer" title="Abrir a foto">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.url ?? ''} alt={f.legenda ?? 'Passo a passo'} />
+                </a>
+                {f.legenda && <figcaption>{f.legenda}</figcaption>}
+              </figure>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

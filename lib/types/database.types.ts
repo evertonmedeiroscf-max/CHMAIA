@@ -446,6 +446,32 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['fichas_lembretes']['Insert']>
         Relationships: []
       }
+      fichas_fotos: {
+        Row: {
+          id: string
+          ficha_id: string
+          posicao: string
+          ordem: number
+          arquivo_path: string
+          legenda: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          ficha_id: string
+          posicao: string
+          ordem?: number
+          arquivo_path: string
+          legenda?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['fichas_fotos']['Insert']>
+        Relationships: []
+      }
       agenda_lembretes_financeiros: {
         Row: {
           data_evento: string

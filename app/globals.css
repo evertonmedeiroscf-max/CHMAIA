@@ -3053,3 +3053,393 @@ input.filtro-ativo {
   font-size: 11px;
   color: var(--amber-text);
 }
+
+/* ---------- Impressão resumida da ficha técnica (botão "Imprimir", uma folha A4) ----------
+   A folha fica escondida na tela. O botão ajusta o tamanho da letra (--escala) para caber em UMA
+   folha e marca o <body> com .imprimindo-ficha só enquanto imprime; aí o resto da tela some e só
+   a folha é impressa. O @page A4 sem margem é o global da proposta (acima): a margem de 8 mm é
+   o padding da própria folha. */
+.ficha-impressao {
+  display: none;
+  box-sizing: border-box;
+  width: 210mm;
+  height: 296mm;
+  padding: 8mm;
+  overflow: hidden;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: calc(11pt * var(--escala, 1));
+  line-height: 1.25;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Modo de medição (fora da tela): altura livre para saber quanto o conteúdo ocupa. */
+.ficha-impressao.ficha-impressao-medindo {
+  display: block;
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  height: auto;
+  overflow: visible;
+  visibility: hidden;
+}
+
+.ficha-impressao * {
+  box-sizing: border-box;
+}
+
+.fi-topo {
+  display: flex;
+  border: 0.1em solid #000;
+}
+
+.fi-logo {
+  flex: 0 0 38%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4em;
+  border-right: 0.1em solid #000;
+}
+
+.fi-logo img {
+  display: block;
+  max-width: 100%;
+  max-height: 7em;
+  object-fit: contain;
+}
+
+.fi-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fi-titulo {
+  padding: 0.35em 0.5em;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.05em;
+  border-bottom: 0.1em solid #000;
+}
+
+.fi-nome {
+  padding: 0.3em 0.5em;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.5em;
+  line-height: 1.15;
+  background: #c6e0b4;
+  border-bottom: 0.1em solid #000;
+  overflow-wrap: anywhere;
+}
+
+.fi-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6em;
+  padding: 0.25em 0.5em;
+  border-bottom: 0.05em solid #000;
+}
+
+.fi-linha:last-child {
+  border-bottom: none;
+}
+
+.fi-tabela {
+  width: 100%;
+  margin-top: 1.1em;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.fi-tabela th {
+  padding: 0.3em 0.4em;
+  text-align: center;
+  font-weight: 400;
+  font-size: 1.1em;
+  background: #c6e0b4;
+  border: 0.05em solid #a9c999;
+}
+
+.fi-tabela td {
+  padding: 0.25em 0.4em;
+  vertical-align: top;
+  border-bottom: 0.05em solid #e2e2e2;
+  overflow-wrap: anywhere;
+}
+
+.fi-tabela tbody tr:nth-child(even) td {
+  background: #f2f2f2;
+}
+
+.fi-centro {
+  text-align: center;
+}
+
+.fi-sem-origem {
+  font-weight: 700;
+  color: #b00000;
+}
+
+.fi-referencia {
+  font-weight: 400;
+  font-size: 0.8em;
+  color: #444;
+}
+
+.fi-faixa {
+  margin-top: 1.1em;
+  padding: 0.3em 0.5em;
+  text-align: center;
+  font-weight: 400;
+  font-size: 1.1em;
+  background: #c6e0b4;
+}
+
+.fi-modo {
+  padding: 0.45em 0.4em 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Fotos na folha. Produto finalizado: à esquerda do cabeçalho (o logotipo passa para o canto das
+   informações). Passo a passo: grade quadrada depois do modo de preparo; a foto preenche o quadrado
+   (position absolute), então o tamanho não depende da foto carregar e a medição da folha é exata. */
+.fi-fotos-produto {
+  flex: 0 0 38%;
+  display: flex;
+  gap: 0.25em;
+  padding: 0.25em;
+  border-right: 0.1em solid #000;
+  min-height: 9.5em;
+}
+
+.fi-foto-produto {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.fi-foto-produto img,
+.fi-foto img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fi-info-baixo {
+  display: flex;
+}
+
+.fi-linhas {
+  flex: 1;
+  min-width: 0;
+}
+
+.fi-logo-mini {
+  flex: 0 0 34%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25em;
+  border-left: 0.05em solid #000;
+}
+
+.fi-logo-mini img {
+  display: block;
+  max-width: 100%;
+  max-height: 4.5em;
+  object-fit: contain;
+}
+
+.fi-fotos {
+  display: grid;
+  gap: 0.5em;
+  margin: 1em auto 0;
+}
+
+.fi-foto {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border: 0.05em solid #bbb;
+  background: #eee;
+}
+
+.fi-legenda {
+  position: absolute;
+  left: 0.3em;
+  top: 0.3em;
+  max-width: 92%;
+  padding: 0.12em 0.4em;
+  background: #fff;
+  border: 0.05em solid #888;
+  font-size: 0.8em;
+  line-height: 1.2;
+}
+
+/* ---------- Fotos da ficha técnica: tela da ficha e janela "Inserir foto" ---------- */
+.ficha-meio {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 16px 0;
+}
+
+.ficha-meio .ficha-resumo {
+  flex: 1 1 auto;
+  margin: 0 0 16px auto;
+}
+
+.ficha-fotos-produto {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ficha-fotos-produto img {
+  display: block;
+  height: 190px;
+  width: auto;
+  max-width: 100%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.ficha-fotos-passo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  padding: 12px 16px 0;
+}
+
+.ficha-fotos-passo figure {
+  margin: 0;
+}
+
+.ficha-fotos-passo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.ficha-fotos-passo figcaption {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 720px) {
+  .ficha-meio {
+    flex-direction: column;
+  }
+}
+
+.fotos-ajuda {
+  margin: -8px 0 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.fotos-secao {
+  margin-bottom: 22px;
+}
+
+.fotos-secao-titulo {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.fotos-vazio {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.fotos-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fotos-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 150px;
+}
+
+.fotos-miniatura {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 150px;
+  height: 150px;
+  overflow: hidden;
+  background: #f1f1f1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.fotos-miniatura img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fotos-indisponivel {
+  padding: 8px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.fotos-legenda {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.fotos-botoes {
+  display: flex;
+  gap: 6px;
+}
+
+.fotos-botoes .btn-secondary,
+.fotos-botoes .btn-danger {
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+.fotos-status {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@media print {
+  /* Só quando o botão "Imprimir" da ficha foi usado: some o resto da tela e sobra a folha. */
+  body.imprimindo-ficha > *:not(.ficha-impressao) {
+    display: none !important;
+  }
+  body.imprimindo-ficha {
+    background: #fff !important;
+  }
+  body.imprimindo-ficha .ficha-impressao {
+    display: block;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+}

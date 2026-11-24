@@ -2,6 +2,7 @@ import type { createClient } from '@/lib/supabase/server'
 import type { FichaTecnica, FichaTecnicaIngrediente, ItemEstoqueFicha } from '@/lib/types/domain'
 import { calcularTodasAsFichas, type ResumoFicha } from '@/lib/utils/fichaTecnica'
 import { chaveColunaValida, type LembretesFicha } from '@/lib/utils/lembretesFicha'
+import { posicaoValida, type FotoFicha } from '@/lib/utils/fichaFotos'
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
 
@@ -68,6 +69,34 @@ export async function carregarLembretes(supabase: Supabase): Promise<LembretesFi
   const lembretes: LembretesFicha = {}
   for (const l of data ?? []) if (chaveColunaValida(l.coluna)) lembretes[l.coluna] = l.texto
   return lembretes
+}
+
+// Por quanto tempo vale o link temporário das fotos (6 h): dá folga para deixar a ficha aberta e
+// imprimir depois. O arquivo em si continua privado.
+const VALIDADE_LINK_FOTO_SEGUNDOS = 6 * 60 * 60
+
+// Fotos da ficha (produto finalizado e passo a passo), cada uma com seu link temporário.
+// Foto cujo link não pôde ser gerado vem com `url: null` (a tela avisa, e dá para excluir).
+export async function carregarFotosFicha(supabase: Supabase, fichaId: string): Promise<FotoFicha[]> {
+  const { data, error } = await supabase
+    .from('fichas_fotos')
+    .select('id, posicao, ordem, legenda, arquivo_path')
+    .eq('ficha_id', fichaId)
+    .order('ordem', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error || !data || data.length === 0) return []
+
+  const { data: links } = await supabase.storage.from('fichas-fotos').createSignedUrls(
+    data.map((f) => f.arquivo_path),
+    VALIDADE_LINK_FOTO_SEGUNDOS
+  )
+  const urlPorCaminho = new Map((links ?? []).map((l) => [l.path, l.error ? null : l.signedUrl]))
+
+  return data.flatMap((f) =>
+    posicaoValida(f.posicao)
+      ? [{ id: f.id, posicao: f.posicao, ordem: f.ordem, legenda: f.legenda, url: urlPorCaminho.get(f.arquivo_path) ?? null }]
+      : []
+  )
 }
 
 export type DadosFichas = {

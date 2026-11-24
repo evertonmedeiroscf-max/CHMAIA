@@ -238,6 +238,9 @@ export async function excluirLembreteColuna(coluna: string): Promise<ResultadoLe
 
 export async function excluirFichaTecnica(id: string): Promise<{ error: string } | { success: true }> {
   const supabase = await createClient()
+  // As linhas das fotos saem junto com a ficha (cascata), mas os arquivos no Storage não: guarda os
+  // caminhos agora para apagá-los depois que a ficha realmente for excluída.
+  const { data: fotos } = await supabase.from('fichas_fotos').select('arquivo_path').eq('ficha_id', id)
   const { data, error } = await supabase.from('fichas_tecnicas').delete().eq('id', id).select('id')
   if (error) {
     // A ficha é ingrediente de outra (vínculo Base -> Finalização, "restrict").
@@ -247,6 +250,11 @@ export async function excluirFichaTecnica(id: string): Promise<{ error: string }
     return { error: error.message }
   }
   if (!data || data.length === 0) return { error: 'Ficha não encontrada ou sem permissão para excluir.' }
+
+  if (fotos && fotos.length > 0) {
+    const { error: erroArquivos } = await supabase.storage.from('fichas-fotos').remove(fotos.map((f) => f.arquivo_path))
+    if (erroArquivos) console.error('[fichas-fotos] ficha excluída, mas os arquivos das fotos ficaram no Storage:', erroArquivos.message)
+  }
 
   revalidatePath('/fichas-tecnicas')
   return { success: true }
