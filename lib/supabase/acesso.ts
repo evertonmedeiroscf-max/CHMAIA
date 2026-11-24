@@ -20,3 +20,15 @@ export async function exigirAcesso(pagina: PaginaSistema) {
 
   return supabase
 }
+
+// O usuário logado é ADM (e está aprovado)? É a mesma regra da função usuario_e_adm() do
+// banco, que é quem de fato barra as gravações só de ADM. Aqui serve para escolher o que a
+// tela mostra e para recusar cedo; nunca use só isto como proteção.
+export async function usuarioEhAdm(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return false
+  const { data } = await supabase.from('usuarios').select('tipo, aprovado').eq('id', user.id).maybeSingle()
+  return data?.tipo === 'adm' && data.aprovado === true
+}

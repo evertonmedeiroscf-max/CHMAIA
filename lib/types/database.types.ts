@@ -426,6 +426,26 @@ export interface Database {
           },
         ]
       }
+      fichas_lembretes: {
+        Row: {
+          id: string
+          coluna: string
+          texto: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          coluna: string
+          texto: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['fichas_lembretes']['Insert']>
+        Relationships: []
+      }
       notas_fiscais: {
         Row: {
           id: string

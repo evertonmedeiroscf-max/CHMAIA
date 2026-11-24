@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation'
 import { TIPO_FICHA_LABEL, type FichaTecnica, type FichaTecnicaIngrediente, type ItemEstoqueFicha, type TipoFicha } from '@/lib/types/domain'
 import { formatCurrency } from '@/lib/utils/format'
 import { calcularFicha, formatNumero, pesoBruto, precoUnitario, type LinhaCalculo } from '@/lib/utils/fichaTecnica'
+import type { LembretesFicha } from '@/lib/utils/lembretesFicha'
 import { ordenarIngredientes } from '@/lib/utils/ordenarIngredientes'
+import CabecalhoTabelaFicha from './CabecalhoTabelaFicha'
 import { MAX_INGREDIENTES_FICHA } from '@/lib/validations/fichaTecnica'
 import FichaCabecalho from './FichaCabecalho'
 import { TEXTO_SEM_ORIGEM } from './visual'
@@ -57,12 +59,17 @@ export default function FichaEditor({
   ingredientes,
   itens,
   bases,
+  lembretes,
+  ehAdm,
 }: {
   ficha?: FichaTecnica
   tipoNovo?: TipoFicha
   ingredientes: FichaTecnicaIngrediente[]
   itens: ItemEstoqueFicha[]
   bases: BaseOpcao[]
+  // Notas amarelas dos cabeçalhos da tabela (todos veem); só o ADM cria/edita/exclui.
+  lembretes: LembretesFicha
+  ehAdm: boolean
 }) {
   const router = useRouter()
   const tipo: TipoFicha = ficha?.tipo ?? tipoNovo ?? 'bases'
@@ -301,18 +308,7 @@ export default function FichaEditor({
         </div>
 
         <div className="ficha-tabela">
-          <div className="ficha-grade ficha-cab">
-            <div>Ingredientes</div>
-            <div>Observações</div>
-            <div>Unid</div>
-            <div>Peso líquido</div>
-            <div>FC</div>
-            <div>Peso bruto</div>
-            <div>Medida caseira</div>
-            <div>Preço do Kg</div>
-            <div>Preço unit</div>
-            <div />
-          </div>
+          <CabecalhoTabelaFicha className="ficha-grade ficha-cab" lembretes={lembretes} ehAdm={ehAdm} extra={<div />} />
 
           {linhas.map((l, i) => {
             const c = calculadas[i]

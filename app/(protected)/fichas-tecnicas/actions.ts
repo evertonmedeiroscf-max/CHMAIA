@@ -1,9 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { usuarioEhAdm } from '@/lib/supabase/acesso'
 import { createClient } from '@/lib/supabase/server'
 import type { FichaTecnica, FichaTecnicaIngrediente, TipoFicha } from '@/lib/types/domain'
 import { fichasComMesmoNome, montarCopiaFicha } from '@/lib/utils/duplicarFicha'
+import { chaveColunaValida, MAX_LEMBRETE } from '@/lib/utils/lembretesFicha'
 import { duplicarFichaSchema, fichaTecnicaSchema } from '@/lib/validations/fichaTecnica'
 
 export type ResultadoFicha = { error: string } | { id: string }
@@ -195,6 +197,43 @@ export async function salvarFichaTecnica(id: string | null, dados: unknown): Pro
   revalidatePath('/fichas-tecnicas')
   revalidatePath(`/fichas-tecnicas/${fichaId}`)
   return { id: fichaId }
+}
+
+// ---------- Lembretes dos cabeçalhos da ficha (só ADM) ----------
+// Quem não é ADM nunca grava: a tela nem mostra a opção, esta ação recusa, e o banco
+// (fichas_lembretes, migração 0030) também recusa.
+export type ResultadoLembrete = { error: string } | { success: true }
+
+const SO_ADM = 'Só o ADM do sistema pode criar, editar ou excluir lembretes.'
+
+export async function salvarLembreteColuna(coluna: string, texto: string): Promise<ResultadoLembrete> {
+  if (!chaveColunaValida(coluna)) return { error: 'Coluna inválida.' }
+  const limpo = typeof texto === 'string' ? texto.trim() : ''
+  if (!limpo) return { error: 'Escreva o lembrete (ou use "Excluir lembrete").' }
+  if (limpo.length > MAX_LEMBRETE) return { error: `O lembrete pode ter no máximo ${MAX_LEMBRETE} caracteres.` }
+
+  const supabase = await createClient()
+  if (!(await usuarioEhAdm(supabase))) return { error: SO_ADM }
+
+  const { error } = await supabase.from('fichas_lembretes').upsert({ coluna, texto: limpo }, { onConflict: 'coluna' })
+  if (error) return { error: error.code === '42501' ? SO_ADM : error.message }
+
+  revalidatePath('/fichas-tecnicas', 'layout')
+  return { success: true }
+}
+
+export async function excluirLembreteColuna(coluna: string): Promise<ResultadoLembrete> {
+  if (!chaveColunaValida(coluna)) return { error: 'Coluna inválida.' }
+
+  const supabase = await createClient()
+  if (!(await usuarioEhAdm(supabase))) return { error: SO_ADM }
+
+  const { data, error } = await supabase.from('fichas_lembretes').delete().eq('coluna', coluna).select('id')
+  if (error) return { error: error.code === '42501' ? SO_ADM : error.message }
+  if (!data || data.length === 0) return { error: 'Esse lembrete não existe mais.' }
+
+  revalidatePath('/fichas-tecnicas', 'layout')
+  return { success: true }
 }
 
 export async function excluirFichaTecnica(id: string): Promise<{ error: string } | { success: true }> {

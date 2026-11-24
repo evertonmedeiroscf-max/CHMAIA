@@ -2,7 +2,9 @@ import Link from 'next/link'
 import type { FichaTecnica } from '@/lib/types/domain'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { formatNumero, type ResumoFicha } from '@/lib/utils/fichaTecnica'
+import type { LembretesFicha } from '@/lib/utils/lembretesFicha'
 import BotaoDuplicar from './BotaoDuplicar'
+import CabecalhoTabelaFicha from './CabecalhoTabelaFicha'
 import BotaoPaginaAnterior from './BotaoPaginaAnterior'
 import FichaCabecalho from './FichaCabecalho'
 import { TEXTO_SEM_ORIGEM, type LinhaVisual } from './visual'
@@ -25,10 +27,15 @@ export default function FichaVisualizacao({
   ficha,
   resumo,
   linhas,
+  lembretes,
+  ehAdm,
 }: {
   ficha: FichaTecnica
   resumo: ResumoFicha
   linhas: LinhaVisual[]
+  // Notas amarelas dos cabeçalhos da tabela (todos veem); só o ADM cria/edita/exclui.
+  lembretes: LembretesFicha
+  ehAdm: boolean
 }) {
   const ehBase = ficha.tipo === 'bases'
   const semOrigem = linhas.filter((l) => l.semOrigem).length
@@ -84,17 +91,7 @@ export default function FichaVisualizacao({
         )}
 
         <div className="ficha-tabela">
-          <div className="ficha-grade ficha-grade-leitura ficha-cab">
-            <div>Ingredientes</div>
-            <div>Observações</div>
-            <div>Unid</div>
-            <div>Peso líquido</div>
-            <div>FC</div>
-            <div>Peso bruto</div>
-            <div>Medida caseira</div>
-            <div>Preço do Kg</div>
-            <div>Preço unit</div>
-          </div>
+          <CabecalhoTabelaFicha className="ficha-grade ficha-grade-leitura ficha-cab" lembretes={lembretes} ehAdm={ehAdm} />
 
           {linhas.map((l) => (
             <div key={l.id} className={`ficha-grade ficha-grade-leitura ficha-linha${l.semOrigem ? ' ficha-linha-sem-origem' : ''}`}>

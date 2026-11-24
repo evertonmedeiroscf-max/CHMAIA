@@ -1,6 +1,7 @@
 import type { createClient } from '@/lib/supabase/server'
 import type { FichaTecnica, FichaTecnicaIngrediente, ItemEstoqueFicha } from '@/lib/types/domain'
 import { calcularTodasAsFichas, type ResumoFicha } from '@/lib/utils/fichaTecnica'
+import { chaveColunaValida, type LembretesFicha } from '@/lib/utils/lembretesFicha'
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
 
@@ -59,6 +60,14 @@ export async function carregarLinhas(supabase: Supabase): Promise<FichaTecnicaIn
     if (pagina.length < TAMANHO_PAGINA) break
   }
   return linhas.sort((a, b) => a.ficha_id.localeCompare(b.ficha_id) || a.ordem - b.ordem)
+}
+
+// Lembretes (notas amarelas) dos cabeçalhos da tabela de ingredientes: um por coluna.
+export async function carregarLembretes(supabase: Supabase): Promise<LembretesFicha> {
+  const { data } = await supabase.from('fichas_lembretes').select('coluna, texto')
+  const lembretes: LembretesFicha = {}
+  for (const l of data ?? []) if (chaveColunaValida(l.coluna)) lembretes[l.coluna] = l.texto
+  return lembretes
 }
 
 export type DadosFichas = {

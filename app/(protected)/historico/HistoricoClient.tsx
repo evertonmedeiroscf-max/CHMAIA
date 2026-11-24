@@ -19,6 +19,7 @@ const TABELA_LABEL: Record<string, string> = {
   estoque_itens: 'Item de estoque',
   estoque_movimentos: 'Movimento de estoque',
   fichas_tecnicas: 'Ficha técnica',
+  fichas_lembretes: 'Lembrete de ficha técnica',
   usuarios: 'Usuário',
 }
 
@@ -31,6 +32,7 @@ const CAMPO_PRINCIPAL: Record<string, string> = {
   estoque_itens: 'nome',
   estoque_movimentos: 'motivo',
   fichas_tecnicas: 'nome',
+  fichas_lembretes: 'coluna',
   usuarios: 'email',
 }
 
