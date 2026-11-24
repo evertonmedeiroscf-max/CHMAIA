@@ -1,6 +1,7 @@
 import type { createClient } from '@/lib/supabase/server'
 import { pedidoSchema } from '@/lib/validations/pedidos'
 import type { EntidadeTipo } from '@/lib/types/domain'
+import { atualizarLembretesFinanceiros } from '@/lib/google/lembreteFinanceiro'
 
 // Pedido gerado automaticamente a partir de um orçamento aprovado (ver
 // updateOrcamento/createOrcamento em actions.ts). Não é arquivo 'use server'
@@ -49,6 +50,8 @@ export async function criarPedidoDoOrcamento(supabase: Supabase, o: DadosOrcamen
 
   const { data, error } = await supabase.from('pedidos').insert(parsed.data).select('id').single()
   if (error || !data) return { error: `Não foi possível gerar o pedido: ${error?.message ?? 'erro desconhecido'}` }
+  // Refaz o lembrete diário da Google Agenda (situação financeira dos eventos do dia anterior).
+  await atualizarLembretesFinanceiros(supabase, [parsed.data.data_evento])
   return { ok: true, pedidoId: data.id }
 }
 
@@ -56,7 +59,7 @@ export async function criarPedidoDoOrcamento(supabase: Supabase, o: DadosOrcamen
 // pedido. Não mexe em pagamento/nota — só barra se o novo valor ficar
 // abaixo do que já foi pago.
 export async function sincronizarPedido(supabase: Supabase, pedidoId: string, o: DadosOrcamento): Promise<Resultado> {
-  const { data: pedido } = await supabase.from('pedidos').select('numero, valor_pago').eq('id', pedidoId).maybeSingle()
+  const { data: pedido } = await supabase.from('pedidos').select('numero, valor_pago, data_evento').eq('id', pedidoId).maybeSingle()
   if (!pedido) return criarPedidoDoOrcamento(supabase, o)
   if (!(Number(o.valor_total) > 0)) {
     return { error: `O orçamento está aprovado (pedido nº ${pedido.numero}) e não pode ficar com valor R$ 0,00.` }
@@ -75,6 +78,8 @@ export async function sincronizarPedido(supabase: Supabase, pedidoId: string, o:
     })
     .eq('id', pedidoId)
   if (error) return { error: `Não foi possível atualizar o pedido nº ${pedido.numero}: ${error.message}` }
+  // O evento pode ter mudado de dia ou de valor: refaz o lembrete da Google Agenda do dia antigo e do novo.
+  await atualizarLembretesFinanceiros(supabase, [pedido.data_evento, o.data_evento ?? null])
   return { ok: true, pedidoId }
 }
 
@@ -97,7 +102,10 @@ export async function verificarRetiradaPedido(supabase: Supabase, pedidoId: stri
 }
 
 export async function retirarPedido(supabase: Supabase, pedidoId: string): Promise<Resultado> {
+  const { data: antes } = await supabase.from('pedidos').select('data_evento').eq('id', pedidoId).maybeSingle()
   const { error } = await supabase.from('pedidos').delete().eq('id', pedidoId)
   if (error) return { error: `Não foi possível retirar o pedido da aba Pedidos: ${error.message}` }
+  // O dia do evento perdeu um pedido: refaz (ou apaga) o lembrete da Google Agenda do dia anterior.
+  await atualizarLembretesFinanceiros(supabase, [antes?.data_evento])
   return { ok: true }
 }

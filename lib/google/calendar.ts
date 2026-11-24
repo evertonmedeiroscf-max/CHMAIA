@@ -346,6 +346,78 @@ export async function sincronizarEventoPedido(
   return eventoIdExistente
 }
 
+// ---------------------------------------------------------------------------
+// Eventos avulsos (que não são um pedido) — hoje, o lembrete diário da situação
+// financeira dos eventos do dia seguinte (ver lib/google/lembreteFinanceiro.ts).
+// ---------------------------------------------------------------------------
+
+export type EventoAgenda = {
+  // Id do evento já existente na agenda (null = criar um novo).
+  eventoId: string | null
+  excluir: boolean
+  titulo?: string
+  descricao?: string
+  // "AAAA-MM-DDTHH:mm:ss" no fuso America/Sao_Paulo.
+  inicio?: string
+  fim?: string
+}
+
+export type ResultadoEventoAgenda = { ok: true; eventoId: string | null } | { ok: false; erro: string }
+
+async function sincronizarEventoAvulsoViaContaServico(evento: EventoAgenda): Promise<string | null> {
+  if (evento.excluir) {
+    if (evento.eventoId) await chamarGoogleCalendar('DELETE', `/events/${evento.eventoId}`)
+    return null
+  }
+  const corpo = {
+    summary: evento.titulo,
+    description: evento.descricao,
+    start: { dateTime: evento.inicio, timeZone: FUSO_HORARIO },
+    end: { dateTime: evento.fim, timeZone: FUSO_HORARIO },
+  }
+  if (evento.eventoId) {
+    const atualizado = await chamarGoogleCalendar('PUT', `/events/${evento.eventoId}`, corpo)
+    // O Google já não tem esse evento (alguém apagou na agenda): cria de novo.
+    if (atualizado) return atualizado.id
+  }
+  const criado = await chamarGoogleCalendar('POST', '/events', corpo)
+  return criado?.id ?? null
+}
+
+// Cria, atualiza ou apaga vários eventos avulsos de uma vez e devolve um resultado por evento, na
+// mesma ordem. Nunca lança: falhas viram `{ ok: false }`.
+export async function sincronizarEventosEmLote(eventos: EventoAgenda[]): Promise<ResultadoEventoAgenda[]> {
+  const modo = modoIntegracao()
+  if (!modo) return eventos.map(() => ({ ok: false, erro: 'A integração com a Google Agenda não está configurada.' }))
+  if (eventos.length === 0) return []
+
+  if (modo === 'apps-script') {
+    try {
+      const respostas = await chamarAppsScript(eventos)
+      return respostas.map((r) => (r.ok ? { ok: true, eventoId: r.eventoId } : { ok: false, erro: r.erro }))
+    } catch (erro) {
+      console.error('[google-calendar] falha ao falar com o Apps Script', erro)
+      return eventos.map(() => ({ ok: false, erro: mensagemDeErro(erro) }))
+    }
+  }
+
+  const resultados: ResultadoEventoAgenda[] = new Array(eventos.length)
+  let proximo = 0
+  async function trabalhador() {
+    while (proximo < eventos.length) {
+      const i = proximo++
+      try {
+        resultados[i] = { ok: true, eventoId: await sincronizarEventoAvulsoViaContaServico(eventos[i]) }
+      } catch (erro) {
+        console.error('[google-calendar] falha ao sincronizar evento avulso', erro)
+        resultados[i] = { ok: false, erro: mensagemDeErro(erro) }
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCORRENCIA_CONTA_SERVICO, eventos.length) }, trabalhador))
+  return resultados
+}
+
 export async function excluirEventoPedido(eventoId: string | null): Promise<void> {
   const modo = modoIntegracao()
   if (!modo || !eventoId) return

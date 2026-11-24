@@ -446,6 +446,22 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['fichas_lembretes']['Insert']>
         Relationships: []
       }
+      agenda_lembretes_financeiros: {
+        Row: {
+          data_evento: string
+          google_event_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          data_evento: string
+          google_event_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['agenda_lembretes_financeiros']['Insert']>
+        Relationships: []
+      }
       notas_fiscais: {
         Row: {
           id: string

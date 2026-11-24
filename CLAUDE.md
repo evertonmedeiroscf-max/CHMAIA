@@ -96,6 +96,22 @@ nesse projeto.
   `app/(protected)/pedidos/actions.ts`, enviados em lotes de 10 com progresso)
   — idempotente, quem já tem evento só é atualizado.
 
+  **Lembrete diário (situação financeira dos eventos de amanhã):** além do
+  evento de cada pedido, a agenda ganha UM evento por dia, no dia ANTERIOR aos
+  eventos, às 10:00–10:30 (`HORA_INICIO_LEMBRETE` em `lib/utils/lembreteAgenda.ts`),
+  com título "Eventos de amanhã (DD/MM): falta receber R$ X" (ou "tudo pago") e
+  a lista de eventos com valor e PAGO/50% PAGO/PENDENTE. Não depende de cron nem
+  de service role (o banco só se lê com o login de quem está usando): é refeito
+  por `atualizarLembretesFinanceiros` (`lib/google/lembreteFinanceiro.ts`) sempre
+  que um pedido é criado/editado/excluído (`pedidos/actions.ts`) ou vem de um
+  orçamento (`orcamentos/pedidoVinculado.ts`, `converterEmPedido`), e pelo botão
+  "Sincronizar com Google Agenda" (último passo, `sincronizarLembretesFinanceirosGoogle`).
+  O id do evento de cada dia fica na tabela `agenda_lembretes_financeiros`
+  (migração 0031). Funciona nos dois jeitos de ligar, sem mudar o Apps Script
+  (o aviso sonoro usa as notificações padrão da agenda). Lembrete de dia que já
+  passou nunca é mexido. A mesma informação aparece como pop-up no sistema
+  (`app/(protected)/LembreteEventosAmanha.tsx`).
+
   **Jeito 1 — Apps Script** (`GOOGLE_APPS_SCRIPT_URL`,
   `GOOGLE_APPS_SCRIPT_TOKEN`). Não precisa de Google Cloud nem de chave —
   é o caminho quando a organização do Google Cloud bloqueia a criação de

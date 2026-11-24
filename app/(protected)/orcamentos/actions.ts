@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { orcamentoSchema } from '@/lib/validations/orcamentos'
 import { calcularResumo, calcularValidade } from '@/lib/utils/orcamento'
 import type { SecaoOrcamento } from '@/lib/types/domain'
+import { atualizarLembretesFinanceiros } from '@/lib/google/lembreteFinanceiro'
 import { criarPedidoDoOrcamento, retirarPedido, sincronizarPedido, verificarRetiradaPedido } from './pedidoVinculado'
 
 // `id` volta no create/update para a tela reabrir o orçamento salvo (e
@@ -249,6 +250,9 @@ export async function converterEmPedido(orcamentoId: string): Promise<ActionStat
     .eq('id', orcamentoId)
 
   if (updateError) return { error: updateError.message }
+
+  // Refaz o lembrete diário da Google Agenda (situação financeira dos eventos do dia anterior).
+  await atualizarLembretesFinanceiros(supabase, [orcamento.data_evento])
 
   revalidatePath('/orcamentos')
   revalidatePath('/pedidos')

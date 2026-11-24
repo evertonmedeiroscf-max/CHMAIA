@@ -10,6 +10,8 @@ import {
   sincronizarEventoPedido,
   sincronizarPedidosEmLote,
 } from '@/lib/google/calendar'
+import { atualizarLembretesFinanceiros, type ResumoLembretes } from '@/lib/google/lembreteFinanceiro'
+import { dataAmanhaBR } from '@/lib/utils/eventosAmanha'
 import { buscarPedidosDuplicados, chaveDuplicidade, type PedidoDuplicado } from '@/lib/utils/pedidoDuplicado'
 
 // `duplicados` preenchido = nada foi salvo ainda: a tela mostra o aviso e, se o
@@ -75,6 +77,9 @@ export async function createPedido(_prevState: ActionState, formData: FormData):
     await supabase.from('pedidos').update({ google_calendar_event_id: eventoId }).eq('id', data.id)
   }
 
+  // Refaz o lembrete diário (situação financeira dos eventos do dia anterior) na agenda.
+  await atualizarLembretesFinanceiros(supabase, [data.data_evento])
+
   revalidatePath('/pedidos')
   revalidatePath('/dashboard')
   return { success: true }
@@ -107,6 +112,9 @@ export async function updatePedido(
     }
   }
 
+  // Dia do evento ANTES da edição: se o evento mudou de dia, o lembrete do dia antigo também precisa ser refeito.
+  const { data: antes } = await supabase.from('pedidos').select('data_evento').eq('id', id).maybeSingle()
+
   const { data, error } = await supabase.from('pedidos').update(parsed.data).eq('id', id).select().single()
 
   if (error) return { error: error.message }
@@ -119,6 +127,9 @@ export async function updatePedido(
   if (eventoId !== eventoIdAnterior) {
     await supabase.from('pedidos').update({ google_calendar_event_id: eventoId }).eq('id', id)
   }
+
+  // Refaz o lembrete diário (situação financeira dos eventos do dia anterior), do dia antigo e do novo.
+  await atualizarLembretesFinanceiros(supabase, [antes?.data_evento, data.data_evento])
 
   revalidatePath('/pedidos')
   revalidatePath('/dashboard')
@@ -195,6 +206,28 @@ export async function sincronizarLotePedidosGoogle(ids: string[]): Promise<Resul
   return { resumo }
 }
 
+export type ResultadoLembretesGoogle = { error: string } | { resumo: ResumoLembretes }
+
+// Botão "Sincronizar com Google Agenda", passo final: refaz o lembrete diário (situação financeira
+// dos eventos do dia seguinte) de todos os dias com evento de amanhã em diante, e apaga os que não
+// têm mais evento. Quem já tem lembrete só é atualizado, então repetir nunca duplica nada.
+export async function sincronizarLembretesFinanceirosGoogle(): Promise<ResultadoLembretesGoogle> {
+  if (!googleAgendaConfigurada()) return { error: ERRO_GOOGLE_NAO_CONFIGURADA }
+
+  const supabase = await createClient()
+  const amanha = dataAmanhaBR()
+  const [pedidos, controle] = await Promise.all([
+    supabase.from('pedidos').select('data_evento').gte('data_evento', amanha),
+    supabase.from('agenda_lembretes_financeiros').select('data_evento').gte('data_evento', amanha),
+  ])
+  if (pedidos.error) return { error: pedidos.error.message }
+  if (controle.error) return { error: controle.error.message }
+
+  // Dias com pedido + dias que já têm lembrete (se ficaram sem pedido, o lembrete é apagado).
+  const datas = [...(pedidos.data ?? []).map((p) => p.data_evento), ...(controle.data ?? []).map((l) => l.data_evento)]
+  return { resumo: await atualizarLembretesFinanceiros(supabase, datas) }
+}
+
 export async function updateFormaPagamentoPedido(id: string, forma_pagamento: FormaPagamento): Promise<ActionState> {
   if (!FORMAS_PAGAMENTO.includes(forma_pagamento)) {
     return { error: 'Forma de pagamento inválida' }
@@ -223,12 +256,15 @@ export async function updateDataPagamentoPedido(id: string, data_pagamento: stri
 
 export async function deletePedido(_id: string, _prevState: ActionState): Promise<ActionState> {
   const supabase = await createClient()
-  const { data: atual } = await supabase.from('pedidos').select('google_calendar_event_id').eq('id', _id).single()
+  const { data: atual } = await supabase.from('pedidos').select('google_calendar_event_id, data_evento').eq('id', _id).single()
 
   const { error } = await supabase.from('pedidos').delete().eq('id', _id)
   if (error) return { error: error.message }
 
   await excluirEventoPedido(atual?.google_calendar_event_id ?? null)
+
+  // O dia do evento perdeu um pedido: refaz (ou apaga, se era o único) o lembrete do dia anterior.
+  await atualizarLembretesFinanceiros(supabase, [atual?.data_evento])
 
   revalidatePath('/pedidos')
   revalidatePath('/dashboard')

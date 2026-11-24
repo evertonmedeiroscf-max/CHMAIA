@@ -17,8 +17,11 @@ import { ptBR } from 'date-fns/locale'
 import Modal from '@/components/Modal'
 import type { Pedido } from '@/lib/types/domain'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
+import type { ResumoLembretes } from '@/lib/google/lembreteFinanceiro'
+import { HORA_INICIO_LEMBRETE } from '@/lib/utils/lembreteAgenda'
 import {
   prepararSincronizacaoGoogle,
+  sincronizarLembretesFinanceirosGoogle,
   sincronizarLotePedidosGoogle,
   type ResumoSincronizacaoGoogle,
 } from './actions'
@@ -59,6 +62,16 @@ function descreverResumo(resumo: ResumoEnvio) {
   return partes.join(' · ')
 }
 
+// Os lembretes diários (situação financeira dos eventos do dia seguinte) vão junto no envio.
+function descreverLembretes(resumo: ResumoLembretes) {
+  const partes: string[] = []
+  if (resumo.criados) partes.push(plural(resumo.criados, 'criado', 'criados'))
+  if (resumo.atualizados) partes.push(plural(resumo.atualizados, 'atualizado', 'atualizados'))
+  if (resumo.removidos) partes.push(`${plural(resumo.removidos, 'removido', 'removidos')} (dia sem evento)`)
+  if (partes.length === 0 && resumo.falhas === 0) partes.push('nenhum dia com evento pela frente')
+  return partes.join(' · ')
+}
+
 export default function PedidosCalendar({
   pedidos,
   onEdit,
@@ -74,13 +87,16 @@ export default function PedidosCalendar({
   const [sincronizando, setSincronizando] = useState(false)
   const [progressoSync, setProgressoSync] = useState<{ feitos: number; total: number } | null>(null)
   const [resumoSync, setResumoSync] = useState<ResumoEnvio | null>(null)
+  const [resumoLembretes, setResumoLembretes] = useState<ResumoLembretes | null>(null)
+  const [atualizandoLembretes, setAtualizandoLembretes] = useState(false)
   const [erroSync, setErroSync] = useState('')
 
   async function handleSincronizar() {
     if (
       !window.confirm(
         'Enviar para a Google Agenda (chefhilanamaia@gmail.com) todos os pedidos que têm data e hora do evento?\n\n' +
-          'Pedidos que já estão na agenda são apenas atualizados — nada é duplicado.'
+          'Pedidos que já estão na agenda são apenas atualizados — nada é duplicado.\n\n' +
+          `Também atualiza, na agenda, o lembrete diário (às ${HORA_INICIO_LEMBRETE} do dia anterior) com a situação financeira dos eventos do dia seguinte.`
       )
     )
       return
@@ -88,6 +104,7 @@ export default function PedidosCalendar({
     setSincronizando(true)
     setErroSync('')
     setResumoSync(null)
+    setResumoLembretes(null)
     setProgressoSync(null)
     try {
       const preparo = await prepararSincronizacaoGoogle()
@@ -115,11 +132,20 @@ export default function PedidosCalendar({
         total.primeiroErro ??= resultado.resumo.primeiroErro
       }
       setResumoSync(total)
+
+      // Último passo: o lembrete diário de cada dia com evento pela frente.
+      setProgressoSync(null)
+      setAtualizandoLembretes(true)
+      const lembretes = await sincronizarLembretesFinanceirosGoogle()
+      setResumoLembretes(
+        'error' in lembretes ? { criados: 0, atualizados: 0, removidos: 0, falhas: 1, primeiroErro: lembretes.error } : lembretes.resumo
+      )
       router.refresh()
     } catch {
       setErroSync('Não foi possível concluir a sincronização. Confira a conexão e tente novamente — o que já foi enviado não se repete.')
     } finally {
       setSincronizando(false)
+      setAtualizandoLembretes(false)
       setProgressoSync(null)
     }
   }
@@ -181,7 +207,9 @@ export default function PedidosCalendar({
           {sincronizando
             ? progressoSync
               ? `Enviando ${Math.min(progressoSync.feitos + PEDIDOS_POR_LOTE, progressoSync.total)} de ${progressoSync.total}…`
-              : 'Preparando…'
+              : atualizandoLembretes
+                ? 'Atualizando lembretes…'
+                : 'Preparando…'
             : 'Sincronizar com Google Agenda'}
         </button>
       </div>
@@ -199,6 +227,18 @@ export default function PedidosCalendar({
               {' '}
               · <strong>{plural(resumoSync.falhas, 'falha', 'falhas')}</strong>
               {resumoSync.primeiroErro ? ` (${resumoSync.primeiroErro})` : ''} — clique de novo para tentar os que faltaram.
+            </>
+          )}
+        </p>
+      )}
+      {resumoLembretes && (
+        <p className={`calendar-sync-result${resumoLembretes.falhas > 0 ? ' calendar-sync-result-warn' : ''}`}>
+          Lembretes diários (situação financeira dos eventos do dia seguinte): {descreverLembretes(resumoLembretes)}
+          {resumoLembretes.falhas > 0 && (
+            <>
+              {' '}
+              · <strong>{plural(resumoLembretes.falhas, 'falha', 'falhas')}</strong>
+              {resumoLembretes.primeiroErro ? ` (${resumoLembretes.primeiroErro})` : ''} — clique de novo para tentar de novo.
             </>
           )}
         </p>

@@ -1135,6 +1135,75 @@ input[type='password'] {
   gap: 10px;
 }
 
+/* ---------- Lembrete: situação financeira dos eventos de amanhã ---------- */
+.lembrete-amanha-resumo {
+  margin: -8px 0 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.lembrete-amanha-falta {
+  color: var(--danger);
+}
+
+.lembrete-amanha-ok {
+  color: var(--primary-text);
+}
+
+.lembrete-amanha-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lembrete-amanha-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface);
+}
+
+.lembrete-amanha-detalhe {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* Pessoa física que ainda não pagou tudo: destaque maior que o dos demais cartões. */
+.lembrete-amanha-card-destaque {
+  border: 2px solid var(--danger);
+  border-left-width: 8px;
+  padding: 11px 11px 11px 9px;
+  background: var(--danger-bg);
+}
+
+.lembrete-amanha-card-destaque .text-strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.lembrete-amanha-card-destaque .badge-pendente {
+  background: var(--danger);
+  color: #fff;
+}
+
+.lembrete-amanha-tag-pf {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+
 .modal-item-label {
   font-size: 13px;
   color: var(--text-muted);

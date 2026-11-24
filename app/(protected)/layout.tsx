@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import NavBar from '@/components/NavBar'
 import { signOut } from '@/app/auth/actions'
+import { carregarEventosAmanha } from '@/lib/supabase/eventosAmanha'
+import { dataAmanhaBR } from '@/lib/utils/eventosAmanha'
+import LembreteEventosAmanha from './LembreteEventosAmanha'
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -41,6 +44,13 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const { data: estoqueResumo } = await supabase.from('estoque_itens').select('quantidade_atual, quantidade_minima')
   const hasLowStock = (estoqueResumo ?? []).some((item) => item.quantidade_atual < item.quantidade_minima)
 
+  // Lembrete em pop-up com a situação financeira dos eventos de amanhã. Só para quem tem acesso a
+  // Pedidos (o banco também deixa ler pedidos a quem só tem Dashboard/Relatório NF, mas o lembrete
+  // mostra dados da tela de Pedidos).
+  const dataAmanha = dataAmanhaBR()
+  const podeVerPedidos = usuario.tipo === 'adm' || (usuario.paginas ?? []).includes('pedidos')
+  const eventosAmanha = podeVerPedidos ? await carregarEventosAmanha(supabase, dataAmanha) : []
+
   return (
     <div className="app-shell">
       <NavBar
@@ -50,6 +60,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         paginas={usuario.paginas ?? []}
       />
       <main className="app-content">{children}</main>
+      {eventosAmanha.length > 0 && <LembreteEventosAmanha usuarioId={user.id} dataAmanha={dataAmanha} eventos={eventosAmanha} />}
     </div>
   )
 }
