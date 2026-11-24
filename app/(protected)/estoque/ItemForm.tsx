@@ -1,9 +1,13 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
-import { CATEGORIAS_ESTOQUE, UNIDADES_MEDIDA, type EstoqueItem } from '@/lib/types/domain'
+import { UNIDADES_MEDIDA, type EstoqueItem } from '@/lib/types/domain'
+import { chaveCategoria, limparNomeCategoria } from '@/lib/utils/categoriasEstoque'
 import { createEstoqueItem, deleteEstoqueItem, updateEstoqueItem, type ActionState } from './actions'
+
+// Valor da última opção da lista de categorias ("+ Nova categoria…").
+const NOVA_CATEGORIA = '__nova_categoria__'
 
 function SaveButton({ formId }: { formId: string }) {
   const { pending } = useFormStatus()
@@ -23,7 +27,16 @@ function DeleteButton() {
   )
 }
 
-export default function ItemForm({ item, onClose }: { item?: EstoqueItem; onClose: () => void }) {
+// `categorias`: lista completa (as de sempre + as já criadas), em ordem alfabética.
+export default function ItemForm({ item, categorias, onClose }: { item?: EstoqueItem; categorias: string[]; onClose: () => void }) {
+  // Categoria: escolhida na lista, ou — na opção "+ Nova categoria…" — digitada aqui. O que vai para o
+  // servidor é sempre o campo escondido `categoria`; a categoria nova passa a existir quando o item é salvo.
+  const [escolha, setEscolha] = useState(item?.categoria ?? categorias[0] ?? '')
+  const [novaCategoria, setNovaCategoria] = useState('')
+  const criandoCategoria = escolha === NOVA_CATEGORIA
+  const jaExiste = criandoCategoria && novaCategoria.trim() ? categorias.find((c) => chaveCategoria(c) === chaveCategoria(novaCategoria)) : undefined
+  const categoriaFinal = criandoCategoria ? (jaExiste ?? limparNomeCategoria(novaCategoria)) : escolha
+
   const action = useMemo(() => (item ? updateEstoqueItem.bind(null, item.id) : createEstoqueItem), [item])
   const [state, formAction] = useFormState(action, undefined)
   const [deleteState, deleteAction] = useFormState(
@@ -50,14 +63,31 @@ export default function ItemForm({ item, onClose }: { item?: EstoqueItem; onClos
         </label>
         <label>
           Categoria
-          <select name="categoria" defaultValue={item?.categoria ?? CATEGORIAS_ESTOQUE[0]}>
-            {CATEGORIAS_ESTOQUE.map((c) => (
+          <select value={escolha} onChange={(e) => setEscolha(e.target.value)}>
+            {categorias.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
+            <option value={NOVA_CATEGORIA}>+ Nova categoria…</option>
           </select>
         </label>
+        {criandoCategoria && (
+          <label>
+            Nome da nova categoria
+            <input
+              type="text"
+              value={novaCategoria}
+              onChange={(e) => setNovaCategoria(e.target.value)}
+              placeholder="Ex: Congelados"
+              maxLength={60}
+              required
+              autoFocus
+            />
+          </label>
+        )}
+        {jaExiste && <p className="form-info">Já existe a categoria &quot;{jaExiste}&quot;: o item vai ficar nela.</p>}
+        <input type="hidden" name="categoria" value={categoriaFinal} />
         <label>
           Unidade
           <select name="unidade_medida" defaultValue={item?.unidade_medida ?? UNIDADES_MEDIDA[0]}>
@@ -88,6 +118,16 @@ export default function ItemForm({ item, onClose }: { item?: EstoqueItem; onClos
             o FC acima para tirar o realce.
           </p>
         )}
+        <label>
+          Observação
+          <input
+            type="text"
+            name="observacao"
+            placeholder="Ex: Comprar só do fornecedor X"
+            maxLength={500}
+            defaultValue={item?.observacao ?? ''}
+          />
+        </label>
         <label>
           Marca / Fornecedor
           <input

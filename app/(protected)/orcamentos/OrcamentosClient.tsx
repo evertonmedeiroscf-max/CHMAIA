@@ -3,6 +3,7 @@
 import { cloneElement, useEffect, useMemo, useState, useTransition } from 'react'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
+import AvisoFiltros from '@/components/AvisoFiltros'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import OrcamentoForm from './OrcamentoForm'
@@ -347,6 +348,8 @@ export default function OrcamentosClient({ orcamentos, produtos }: { orcamentos:
           {erroConversao}
         </p>
       )}
+
+      <AvisoFiltros colunas={columns} />
 
       <div className="data-table table-scroll">
         <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>

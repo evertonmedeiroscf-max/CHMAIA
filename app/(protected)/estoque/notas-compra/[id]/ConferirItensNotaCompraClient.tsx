@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useFormState, useFormStatus } from 'react-dom'
 import Modal from '@/components/Modal'
 import ItemForm from '../../ItemForm'
+import { listarCategoriasEstoque } from '@/lib/utils/categoriasEstoque'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { STATUS_NOTA_COMPRA_BADGE, STATUS_NOTA_COMPRA_LABEL } from '@/lib/utils/notaCompra'
 import type { EstoqueItem, NotaCompra, NotaCompraItem } from '@/lib/types/domain'
@@ -119,6 +120,8 @@ export default function ConferirItensNotaCompraClient({
   const router = useRouter()
   const [modalNovoItem, setModalNovoItem] = useState(false)
   const isPdf = nota.mime_type === 'application/pdf'
+  // Mesma lista de categorias da aba Estoque (as de sempre + as criadas ao cadastrar itens).
+  const categorias = useMemo(() => listarCategoriasEstoque(estoqueItens.map((i) => i.categoria)), [estoqueItens])
 
   function fecharModalNovoItem() {
     setModalNovoItem(false)
@@ -172,7 +175,7 @@ export default function ConferirItensNotaCompraClient({
 
       {modalNovoItem && (
         <Modal title="Novo item de estoque" onClose={fecharModalNovoItem} closeOnBackdropClick={false}>
-          <ItemForm onClose={fecharModalNovoItem} />
+          <ItemForm categorias={categorias} onClose={fecharModalNovoItem} />
         </Modal>
       )}
     </div>

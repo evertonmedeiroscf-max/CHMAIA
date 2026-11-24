@@ -2,9 +2,24 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { listarCategoriasEstoque, resolverCategoria } from '@/lib/utils/categoriasEstoque'
 import { estoqueItemSchema, estoqueMovimentoSchema } from '@/lib/validations/estoque'
 
 export type ActionState = { error?: string; success?: boolean } | undefined
+
+// A categoria pode ser nova (digitada no formulário). Se ela for igual — ignorando acento e
+// maiúsculas — a uma que já existe, usa a grafia que já existe, para não nascer "bebidas"
+// ao lado de "Bebidas". Se a consulta falhar, segue com o que foi digitado.
+async function categoriaCanonica(supabase: Awaited<ReturnType<typeof createClient>>, digitada: string): Promise<string> {
+  const emUso: string[] = []
+  for (let inicio = 0; ; inicio += 1000) {
+    const { data, error } = await supabase.from('estoque_itens').select('categoria').order('id').range(inicio, inicio + 999)
+    if (error || !data) break
+    emUso.push(...data.map((d) => d.categoria))
+    if (data.length < 1000) break
+  }
+  return resolverCategoria(digitada, listarCategoriasEstoque(emUso))
+}
 
 export async function createEstoqueItem(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = estoqueItemSchema.safeParse({
@@ -14,6 +29,7 @@ export async function createEstoqueItem(_prevState: ActionState, formData: FormD
     preco_corrente: formData.get('preco_corrente') || null,
     fc: formData.get('fc') || null,
     custo_unidade: formData.get('custo_unidade') || null,
+    observacao: formData.get('observacao') || null,
     marca_fornecedor: formData.get('marca_fornecedor') || null,
     quantidade_atual: formData.get('quantidade_atual') || 0,
     quantidade_minima: formData.get('quantidade_minima') || 0,
@@ -21,7 +37,8 @@ export async function createEstoqueItem(_prevState: ActionState, formData: FormD
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
 
   const supabase = await createClient()
-  const { error } = await supabase.from('estoque_itens').insert(parsed.data)
+  const categoria = await categoriaCanonica(supabase, parsed.data.categoria)
+  const { error } = await supabase.from('estoque_itens').insert({ ...parsed.data, categoria })
   if (error) return { error: error.message }
 
   revalidatePath('/estoque')
@@ -40,6 +57,7 @@ export async function updateEstoqueItem(
     preco_corrente: formData.get('preco_corrente') || null,
     fc: formData.get('fc') || null,
     custo_unidade: formData.get('custo_unidade') || null,
+    observacao: formData.get('observacao') || null,
     marca_fornecedor: formData.get('marca_fornecedor') || null,
     quantidade_atual: formData.get('quantidade_atual') || 0,
     quantidade_minima: formData.get('quantidade_minima') || 0,
@@ -50,9 +68,10 @@ export async function updateEstoqueItem(
   // movimentos (trigger do banco, ver 0001_init.sql). Editar aqui registra
   // um movimento de ajuste com a diferença, em vez de sobrescrever o valor —
   // assim o histórico de movimentos continua batendo com o estoque atual.
-  const { quantidade_atual: novaQuantidade, ...dadosItem } = parsed.data
+  const { quantidade_atual: novaQuantidade, ...dadosBrutos } = parsed.data
 
   const supabase = await createClient()
+  const dadosItem = { ...dadosBrutos, categoria: await categoriaCanonica(supabase, dadosBrutos.categoria) }
 
   const { data: itemAtual, error: erroLeitura } = await supabase
     .from('estoque_itens')

@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { CATEGORIAS_ESTOQUE, TIPOS_MOVIMENTO, UNIDADES_MEDIDA } from '@/lib/types/domain'
+import { TIPOS_MOVIMENTO, UNIDADES_MEDIDA } from '@/lib/types/domain'
+import { limparNomeCategoria } from '@/lib/utils/categoriasEstoque'
 
 // nome/marca_fornecedor sempre gravados em maiúsculas, não importa como o
 // usuário digitou — padroniza a exibição na tabela e evita duas linhas pro
@@ -11,13 +12,25 @@ import { CATEGORIAS_ESTOQUE, TIPOS_MOVIMENTO, UNIDADES_MEDIDA } from '@/lib/type
 // derivada da soma dos movimentos (mesma garantia do trigger do banco).
 export const estoqueItemSchema = z.object({
   nome: z.string().trim().toUpperCase().min(1, 'Informe o nome do item'),
-  categoria: z.enum(CATEGORIAS_ESTOQUE),
+  // Texto livre: pode ser uma das 7 de sempre ou uma categoria nova digitada no formulário.
+  categoria: z
+    .string()
+    .transform(limparNomeCategoria)
+    .pipe(z.string().min(1, 'Informe a categoria').max(60, 'A categoria pode ter no máximo 60 caracteres')),
   unidade_medida: z.enum(UNIDADES_MEDIDA),
   preco_corrente: z.coerce.number().nonnegative('Preço não pode ser negativo').nullable().optional(),
   // FC em branco fica null (o sistema nunca assume 1); se preenchido, > 0.
   fc: z.coerce.number().positive('O FC deve ser maior que zero').nullable().optional(),
   custo_unidade: z.coerce.number().nonnegative('Custo não pode ser negativo').nullable().optional(),
   marca_fornecedor: z.string().trim().toUpperCase().nullable().optional(),
+  // Texto livre (do jeito que foi digitado); em branco vira null.
+  observacao: z
+    .string()
+    .trim()
+    .max(500, 'A observação pode ter no máximo 500 caracteres')
+    .nullable()
+    .optional()
+    .transform((v) => (v ? v : null)),
   quantidade_atual: z.coerce.number().nonnegative('Quantidade atual não pode ser negativa'),
   quantidade_minima: z.coerce.number().nonnegative('Quantidade mínima não pode ser negativa'),
 })

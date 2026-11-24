@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
+import AvisoFiltros from '@/components/AvisoFiltros'
 import Pagination from '@/components/Pagination'
 import { TIPOS_FICHA, TIPO_FICHA_LABEL } from '@/lib/types/domain'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
@@ -211,6 +212,8 @@ export default function TabelaFichas({ fichas }: { fichas: FichaListada[] }) {
           {erroExcluir}
         </p>
       )}
+
+      <AvisoFiltros colunas={columns} />
 
       <div className="data-table table-scroll">
         <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>

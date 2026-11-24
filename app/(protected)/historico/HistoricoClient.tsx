@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
+import AvisoFiltros, { type FiltroAtivo } from '@/components/AvisoFiltros'
 import DateRangePicker from '@/components/DateRangePicker'
 import Pagination from '@/components/Pagination'
 import type { HistoricoAlteracao } from '@/lib/types/domain'
@@ -117,6 +118,26 @@ export default function HistoricoClient({ historico }: { historico: HistoricoAlt
     [historicoFiltrado, paginaAtual]
   )
 
+  // Filtros que estão ligados agora (aparecem na faixa amarela acima da lista).
+  const filtrosAtivos: FiltroAtivo[] = []
+  if (filtroDataInicio || filtroDataFim) {
+    const periodo = filtroDataInicio ? `${formatDateBR(filtroDataInicio)} – ${filtroDataFim ? formatDateBR(filtroDataFim) : '...'}` : `até ${formatDateBR(filtroDataFim)}`
+    filtrosAtivos.push({
+      chave: 'periodo',
+      rotulo: `Período: ${periodo}`,
+      limpar: () => {
+        setFiltroDataInicio('')
+        setFiltroDataFim('')
+      },
+    })
+  }
+  if (filtroUsuario) filtrosAtivos.push({ chave: 'usuario', rotulo: `Usuário: ${filtroUsuario}`, limpar: () => setFiltroUsuario('') })
+  if (filtroTabela) filtrosAtivos.push({ chave: 'tabela', rotulo: `Aba: ${TABELA_LABEL[filtroTabela] ?? filtroTabela}`, limpar: () => setFiltroTabela('') })
+  if (filtroOperacao) {
+    const acao = { insert: 'Criações', update: 'Alterações', delete: 'Exclusões' }[filtroOperacao] ?? filtroOperacao
+    filtrosAtivos.push({ chave: 'operacao', rotulo: `Ação: ${acao}`, limpar: () => setFiltroOperacao('') })
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -132,12 +153,13 @@ export default function HistoricoClient({ historico }: { historico: HistoricoAlt
         <DateRangePicker
           from={filtroDataInicio}
           to={filtroDataFim}
+          destacarAtivo
           onChange={(de, ate) => {
             setFiltroDataInicio(de)
             setFiltroDataFim(ate)
           }}
         />
-        <select className="select-control" value={filtroUsuario} onChange={(e) => setFiltroUsuario(e.target.value)}>
+        <select className={`select-control${filtroUsuario ? ' filtro-ativo' : ''}`} value={filtroUsuario} onChange={(e) => setFiltroUsuario(e.target.value)}>
           <option value="">Todos os usuários</option>
           {opcoesUsuario.map((u) => (
             <option key={u} value={u}>
@@ -145,7 +167,7 @@ export default function HistoricoClient({ historico }: { historico: HistoricoAlt
             </option>
           ))}
         </select>
-        <select className="select-control" value={filtroTabela} onChange={(e) => setFiltroTabela(e.target.value)}>
+        <select className={`select-control${filtroTabela ? ' filtro-ativo' : ''}`} value={filtroTabela} onChange={(e) => setFiltroTabela(e.target.value)}>
           <option value="">Todas as abas</option>
           {opcoesTabela.map((t) => (
             <option key={t} value={t}>
@@ -153,13 +175,15 @@ export default function HistoricoClient({ historico }: { historico: HistoricoAlt
             </option>
           ))}
         </select>
-        <select className="select-control" value={filtroOperacao} onChange={(e) => setFiltroOperacao(e.target.value)}>
+        <select className={`select-control${filtroOperacao ? ' filtro-ativo' : ''}`} value={filtroOperacao} onChange={(e) => setFiltroOperacao(e.target.value)}>
           <option value="">Todas as ações</option>
           <option value="insert">Criações</option>
           <option value="update">Alterações</option>
           <option value="delete">Exclusões</option>
         </select>
       </div>
+
+      <AvisoFiltros ativos={filtrosAtivos} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {historicoPaginado.map((h) => {

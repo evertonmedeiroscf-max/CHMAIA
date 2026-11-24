@@ -43,6 +43,9 @@ export const CATEGORIAS_DESPESA = [
 ] as const
 export type CategoriaDespesa = (typeof CATEGORIAS_DESPESA)[number]
 
+// As 7 categorias de sempre. A lista completa mostrada na tela (ver
+// lib/utils/categoriasEstoque.ts) soma a ela as categorias novas que o usuário
+// criar ao cadastrar um item — por isso o tipo da categoria é texto livre.
 export const CATEGORIAS_ESTOQUE = [
   'Frios e Laticínios',
   'Bebidas',
@@ -52,7 +55,7 @@ export const CATEGORIAS_ESTOQUE = [
   'Embalagens',
   'Produtos Prontos',
 ] as const
-export type CategoriaEstoque = (typeof CATEGORIAS_ESTOQUE)[number]
+export type CategoriaEstoque = string
 
 export const UNIDADES_MEDIDA = ['KG', 'L', 'UND', 'CX', 'PCT'] as const
 export type UnidadeMedida = (typeof UNIDADES_MEDIDA)[number]
@@ -199,6 +202,8 @@ export interface EstoqueItem {
   custo_unidade: number | null
   data_atualizacao_preco: string | null
   marca_fornecedor: string | null
+  // Texto livre digitado no formulário do item (opcional).
+  observacao: string | null
   quantidade_minima: number
   quantidade_atual: number
   valor_total_estoque: number

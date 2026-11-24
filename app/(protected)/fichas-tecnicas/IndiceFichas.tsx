@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import AvisoFiltros from '@/components/AvisoFiltros'
 import { TIPOS_FICHA, TIPO_FICHA_LABEL, type TipoFicha } from '@/lib/types/domain'
 import type { FichaListada } from './listagem'
 
@@ -66,13 +67,15 @@ export default function IndiceFichas({ fichas }: { fichas: FichaListada[] }) {
       <div className="toolbar" style={{ justifyContent: 'flex-start' }}>
         <input
           type="search"
-          className="indice-busca"
+          className={`indice-busca${busca.trim() ? ' filtro-ativo' : ''}`}
           placeholder="Buscar ficha pelo nome…"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           aria-label="Buscar ficha pelo nome"
         />
       </div>
+
+      <AvisoFiltros ativos={busca.trim() ? [{ chave: 'busca', rotulo: `Busca: ${busca.trim()}`, limpar: () => setBusca('') }] : []} />
 
       <div className="indice-fichas">
         {secoes.map(({ tipo, total, grupos }) => (

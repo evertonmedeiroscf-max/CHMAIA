@@ -3,6 +3,7 @@
 import { cloneElement, useMemo, useState } from 'react'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
+import AvisoFiltros from '@/components/AvisoFiltros'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import NotaFiscalForm from './NotaFiscalForm'
@@ -324,6 +325,8 @@ export default function NotasFiscaisClient({
       <div className="toolbar" style={{ justifyContent: 'flex-end' }}>
         <ColumnManagerPanel columns={columns} order={order} isVisible={isVisible} onToggleVisible={toggleVisible} onReorder={reorder} />
       </div>
+
+      <AvisoFiltros colunas={columns} />
 
       <div className="data-table table-scroll">
         <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>

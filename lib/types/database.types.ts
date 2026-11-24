@@ -198,6 +198,7 @@ export interface Database {
           custo_unidade: number | null
           data_atualizacao_preco: string | null
           marca_fornecedor: string | null
+          observacao: string | null
           quantidade_atual: number
           quantidade_minima: number
           valor_total_estoque: number
@@ -215,6 +216,7 @@ export interface Database {
           fc_sem_origem?: boolean
           custo_unidade?: number | null
           marca_fornecedor?: string | null
+          observacao?: string | null
           quantidade_atual?: number
           quantidade_minima?: number
           created_at?: string

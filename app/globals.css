@@ -634,8 +634,23 @@ input[type='password'] {
   font-size: 13px;
 }
 
+/* Filtro ligado na coluna: o botão ▾ vira um selo cheio e o cabeçalho inteiro da
+   coluna fica amarelo, para dar para ver de relance o que está filtrado. */
 .col-filter-toggle.active {
-  color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-weight: 700;
+}
+
+.table-head > div:has(.col-filter-toggle.active) {
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  box-shadow: inset 0 -3px 0 var(--amber-text);
+  border-radius: 3px 3px 0 0;
+  padding: 4px 6px;
+  margin: -4px -6px;
 }
 
 .col-filter-menu {
@@ -1561,6 +1576,87 @@ input[type='password'] {
 
 .alerta-duplicado li {
   margin-bottom: 4px;
+}
+
+/* Faixa "filtros ativos" (components/AvisoFiltros.tsx): aparece acima da tabela
+   só quando há filtro ligado. */
+.aviso-filtros {
+  display: flex;
+  align-items: center;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--amber-text);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  font-size: 13px;
+}
+
+.aviso-filtros-titulo {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.aviso-filtros-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.aviso-filtros-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid var(--amber-text);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--amber-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.aviso-filtros-chip > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aviso-filtros-chip:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.aviso-filtros-limpar {
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aviso-filtros-limpar:hover {
+  background: var(--primary-hover);
+}
+
+/* Campo/lista de filtro que está com valor escolhido (Histórico, Usuários, busca do índice de fichas). */
+.select-control.filtro-ativo,
+input.filtro-ativo {
+  border-color: var(--amber-text);
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  font-weight: 600;
 }
 
 @media (max-width: 720px) {

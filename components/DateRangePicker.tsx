@@ -95,10 +95,15 @@ export default function DateRangePicker({
   from,
   to,
   onChange,
+  destacarAtivo = false,
 }: {
   from: string
   to: string
   onChange: (from: string, to: string) => void
+  // true = o botão fica amarelo quando há período escolhido (usar em telas em que
+  // "sem período" é o normal, como o Histórico; no Resumo financeiro o mês atual já
+  // vem escolhido de início, então lá não se destaca).
+  destacarAtivo?: boolean
 }) {
   const [aberto, setAberto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -115,7 +120,7 @@ export default function DateRangePicker({
 
   return (
     <div className="range-picker" ref={ref}>
-      <button type="button" className="select-control" onClick={() => setAberto((v) => !v)}>
+      <button type="button" className={`select-control${destacarAtivo && (from || to) ? ' filtro-ativo' : ''}`} onClick={() => setAberto((v) => !v)}>
         {rotulo}
       </button>
       {aberto && (

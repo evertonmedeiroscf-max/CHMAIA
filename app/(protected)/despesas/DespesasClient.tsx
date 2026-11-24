@@ -4,6 +4,7 @@ import { cloneElement, useMemo, useState } from 'react'
 import Link from 'next/link'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
+import AvisoFiltros from '@/components/AvisoFiltros'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import DespesaForm from './DespesaForm'
@@ -169,6 +170,8 @@ export default function DespesasClient({ despesas }: { despesas: Despesa[] }) {
         </Link>
         <ColumnManagerPanel columns={columns} order={order} isVisible={isVisible} onToggleVisible={toggleVisible} onReorder={reorder} />
       </div>
+
+      <AvisoFiltros colunas={columns} />
 
       <div className="data-table table-scroll">
         <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>

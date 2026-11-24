@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useAjustarPagina } from '@/lib/hooks/useAjustarPagina'
+import AvisoFiltros from '@/components/AvisoFiltros'
 import Pagination from '@/components/Pagination'
 import { PAGINAS_SISTEMA, type TipoUsuario, type Usuario } from '@/lib/types/domain'
 import { formatDateBR } from '@/lib/utils/format'
@@ -66,12 +67,16 @@ export default function UsuariosClient({
       </p>
 
       <div className="toolbar">
-        <select className="select-control" value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)}>
+        <select className={`select-control${filtro !== 'todos' ? ' filtro-ativo' : ''}`} value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)}>
           <option value="todos">Todos</option>
           <option value="pendentes">Pendentes</option>
           <option value="aprovados">Aprovados</option>
         </select>
       </div>
+
+      <AvisoFiltros
+        ativos={filtro !== 'todos' ? [{ chave: 'status', rotulo: `Status: ${filtro === 'pendentes' ? 'Pendentes' : 'Aprovados'}`, limpar: () => setFiltro('todos') }] : []}
+      />
 
       <div className="data-table">
         <div className="table-row table-head" style={{ gridTemplateColumns: USUARIOS_GRID }}>

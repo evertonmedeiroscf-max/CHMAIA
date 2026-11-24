@@ -4,13 +4,15 @@ import { cloneElement, useMemo, useState } from 'react'
 import Link from 'next/link'
 import ColumnHeaderFilter from '@/components/ColumnHeaderFilter'
 import ColumnManagerPanel, { type ColumnManagerColumn } from '@/components/ColumnManagerPanel'
+import AvisoFiltros from '@/components/AvisoFiltros'
 import CurvaABCModal from '@/components/CurvaABCModal'
 import ListaComprasModal from '@/components/ListaComprasModal'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import ItemForm from './ItemForm'
 import MovimentoForm from './MovimentoForm'
-import { CATEGORIAS_ESTOQUE, UNIDADES_MEDIDA, type EstoqueItem } from '@/lib/types/domain'
+import { UNIDADES_MEDIDA, type EstoqueItem } from '@/lib/types/domain'
+import { listarCategoriasEstoque } from '@/lib/utils/categoriasEstoque'
 import { formatCurrency, formatDateBR } from '@/lib/utils/format'
 import { computeRowMinWidth } from '@/lib/utils/columns'
 import { useColumnPrefs } from '@/lib/hooks/useColumnPrefs'
@@ -87,6 +89,10 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
   const [filtroDtEstoqueFim, setFiltroDtEstoqueFim] = useState('')
   const [modal, setModal] = useState<ModalState>(null)
   const [paginaAtual, setPaginaAtual] = useState(1)
+
+  // As 7 categorias de sempre + as que já foram criadas ao cadastrar itens, em ordem alfabética
+  // (vale para o formulário do item e para o filtro da coluna Categoria).
+  const categorias = useMemo(() => listarCategoriasEstoque(itens.map((i) => i.categoria)), [itens])
 
   // v2: a ordem padrão mudou (Estoque Mínimo agora vem antes de Estoque
   // Atual) — troquei a chave pra quem já tinha uma ordem salva no
@@ -204,7 +210,7 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
     {
       key: 'categoria',
       label: COLUMN_LABELS.categoria,
-      filter: { options: CATEGORIAS_ESTOQUE.map((c) => ({ value: c, label: c })), selected: filtroCategoria, onChange: setFiltroCategoria },
+      filter: { options: categorias.map((c) => ({ value: c, label: c })), selected: filtroCategoria, onChange: setFiltroCategoria },
     },
     {
       key: 'unidade_medida',
@@ -312,6 +318,8 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
         <ColumnManagerPanel columns={columns} order={order} isVisible={isVisible} onToggleVisible={toggleVisible} onReorder={reorder} />
       </div>
 
+      <AvisoFiltros colunas={columns} />
+
       <div className="data-table table-scroll">
         <div className="table-row table-head" style={{ gridTemplateColumns: gridTemplate, minWidth }}>
           {visibleOrder.map((key) => {
@@ -382,7 +390,7 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
           onClose={fecharModal}
           closeOnBackdropClick={false}
         >
-          <ItemForm key={modal.item?.id ?? 'novo'} item={modal.item} onClose={fecharModal} />
+          <ItemForm key={modal.item?.id ?? 'novo'} item={modal.item} categorias={categorias} onClose={fecharModal} />
         </Modal>
       )}
 
