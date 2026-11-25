@@ -255,7 +255,11 @@ export default function EstoqueClient({ itens }: { itens: EstoqueItem[] }) {
       case 'nome':
         return (
           <div className="text-strong">
-            <Link href={`/estoque/${item.id}`}>{item.nome}</Link>
+            {/* Clicar no produto abre a ficha dele (a mesma janela do "editar"). O histórico de
+                movimentos fica no link dentro da ficha. */}
+            <button type="button" className="nome-item-link" onClick={() => setModal({ type: 'item', item })}>
+              {item.nome}
+            </button>
             {isLow && <span className="low-stock-flag">ESTOQUE BAIXO</span>}
             {item.fc_sem_origem && <div className="sem-origem-flag">{TEXTO_SEM_ORIGEM}</div>}
           </div>

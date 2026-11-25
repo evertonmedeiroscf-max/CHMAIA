@@ -337,6 +337,27 @@ button {
   cursor: not-allowed;
 }
 
+/* Nome do produto na lista do Estoque: parece link, mas abre a ficha do produto na própria tela. */
+.nome-item-link {
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  color: var(--primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.nome-item-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+.modal-link-historico {
+  align-self: flex-start;
+  font-size: 13px;
+}
+
 /* ---------- Page layout ---------- */
 .page-header {
   display: flex;

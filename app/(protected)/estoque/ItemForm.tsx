@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
+import Link from 'next/link'
 import { UNIDADES_MEDIDA, type EstoqueItem } from '@/lib/types/domain'
 import { chaveCategoria, limparNomeCategoria } from '@/lib/utils/categoriasEstoque'
 import { createEstoqueItem, deleteEstoqueItem, updateEstoqueItem, type ActionState } from './actions'
@@ -148,10 +149,15 @@ export default function ItemForm({ item, categorias, onClose }: { item?: Estoque
           </label>
         </div>
         {item && (
-          <p className="modal-item-label">
-            Mudar a quantidade atual aqui registra um movimento de ajuste automaticamente (visível no histórico do
-            item) — para entradas/saídas do dia a dia, prefira o botão &quot;movimentar&quot;.
-          </p>
+          <>
+            <p className="modal-item-label">
+              Mudar a quantidade atual aqui registra um movimento de ajuste automaticamente (visível no histórico do
+              item) — para entradas/saídas do dia a dia, prefira o botão &quot;movimentar&quot;.
+            </p>
+            <Link href={`/estoque/${item.id}`} className="modal-link-historico">
+              Ver histórico de movimentos →
+            </Link>
+          </>
         )}
       </form>
 
